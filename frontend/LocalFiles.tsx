@@ -1,0 +1,7 @@
+import {useEffect,useState} from 'react';
+export function LocalFiles({refresh}:{refresh:()=>Promise<void>}){
+ const [assets,setAssets]=useState<{id:string;name:string;title:string}[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ useEffect(()=>{window.studio.media().then(setAssets).catch(e=>setMessage(String(e)));},[]);
+ const run=async(fn:()=>Promise<unknown>)=>{setBusy(true);try{const result=await fn();if(typeof result==='string')setMessage(result);setAssets(await window.studio.media());await refresh();}catch(e){setMessage(String(e));}finally{setBusy(false);}};
+ return <section className="integrations"><strong>Local images and presentations</strong><div className="navigation"><button data-help-id="localFiles.importImage" className="secondary" disabled={busy} onClick={()=>run(()=>window.studio.importMedia('image'))}>Import image</button><button data-help-id="localFiles.importPowerPoint" className="secondary" disabled={busy} onClick={()=>run(()=>window.studio.importMedia('powerpoint'))}>Import PowerPoint</button></div>{busy&&<p role="status">Importing file…</p>}{message&&<p role="status">{message}</p>}<div className="media-list">{assets.map(a=><div className="song" key={a.id}><span>{a.title}</span><button data-help-id="localFiles.add" className="secondary" disabled={busy} onClick={()=>run(()=>window.studio.addMedia(a.id))}>Add</button></div>)}</div></section>;
+}

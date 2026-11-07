@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect x="24" y="24" width="976" height="976" rx="228" fill="#106b6d"/>
+  <!-- Lucide Presentation, ISC license. -->
+  <g transform="translate(176 176) scale(28)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 3h20"/>
+    <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/>
+    <path d="m7 21 5-5 5 5"/>
+  </g>
+</svg>

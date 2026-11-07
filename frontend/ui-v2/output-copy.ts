@@ -1,0 +1,2 @@
+import type{outputView}from'../desk-model';
+export function outputCopy(view:ReturnType<typeof outputView>,tr:(label:string,values?:Record<string,string|number>)=>string){const display=view.rehearsal?tr('Rehearsal window'):view.display,label=view.kind==='live'?tr('LIVE on {display}',{display}):tr(view.kind==='black'?'Armed - black':view.label),caption=tr(view.message,{display})+(view.rehearsal&&view.kind!=='live'?' · '+tr('Rehearsal window'):'');return{label,caption,display};}

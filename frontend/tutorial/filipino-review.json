@@ -1,0 +1,1386 @@
+[
+  {
+    "id": "common.close",
+    "reviewed": false
+  },
+  {
+    "id": "layout.librarySplitter",
+    "reviewed": false
+  },
+  {
+    "id": "layout.presentationSplitter",
+    "reviewed": false
+  },
+  {
+    "id": "layout.serviceSplitter",
+    "reviewed": false
+  },
+  {
+    "id": "outputs.displayOption",
+    "reviewed": false
+  },
+  {
+    "id": "bible.translationOption",
+    "reviewed": false
+  },
+  {
+    "id": "library.rail",
+    "reviewed": false
+  },
+  {
+    "id": "library.row",
+    "reviewed": false
+  },
+  {
+    "id": "library.add",
+    "reviewed": false
+  },
+  {
+    "id": "library.actions",
+    "reviewed": false
+  },
+  {
+    "id": "service.row",
+    "reviewed": false
+  },
+  {
+    "id": "service.actions",
+    "reviewed": false
+  },
+  {
+    "id": "service.slide",
+    "reviewed": false
+  },
+  {
+    "id": "common.selectOption",
+    "reviewed": false
+  },
+  {
+    "id": "common.undo",
+    "reviewed": false
+  },
+  {
+    "id": "library.tagOption",
+    "reviewed": false
+  },
+  {
+    "id": "menus.recentItem",
+    "reviewed": false
+  },
+  {
+    "id": "menus.templateItem",
+    "reviewed": false
+  },
+  {
+    "id": "song.arrangementAdd",
+    "reviewed": false
+  },
+  {
+    "id": "song.arrangementRemove",
+    "reviewed": false
+  },
+  {
+    "id": "bible.savedPassage",
+    "reviewed": false
+  },
+  {
+    "id": "database.selectRow",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.saveState",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.presentMode",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.trigger",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.outputDisplay",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.rehearsalWindow",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.arm",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.disarm",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.lock",
+    "reviewed": false
+  },
+  {
+    "id": "outputChip.outputsAndDisplays",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.file",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.newService",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.openService",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.saveService",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.saveAs",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.recent",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.noRecents",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.package",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.import",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.importSongs",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.importBible",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.importPowerpoint",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.importImages",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.importVideo",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.export",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.exportSongs",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.exportUsage",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.exportSettings",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.exit",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.service",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.renameService",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.templates",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.sunday",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.manageTemplates",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.preflight",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.undo",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.redo",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.recover",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.serviceTools",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.library",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.newSong",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.addBible",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.newNote",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.libraryImages",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.libraryVideo",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.newSlides",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.database",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.translationSettings",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.output",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.outputs",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.armDisarm",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.stage",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.themes",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.patterns",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.lockOutput",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.emergencyBlackout",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.view",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.simple",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.full",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.prepare",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.present",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.appearance",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.scale",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.themeOption",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.scaleOption",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.resetPanes",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.quickSendVisibility",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.help",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.shortcuts",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.welcome",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.activity",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.diagnostics",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.copyPath",
+    "reviewed": false
+  },
+  {
+    "id": "menusMenu.about",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.skipToServiceList",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.skipToPresentationControls",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.menu",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.serviceTitle",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.activityLog",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.settings",
+    "reviewed": false
+  },
+  {
+    "id": "deskV2.status",
+    "reviewed": false
+  },
+  {
+    "id": "library.library",
+    "reviewed": false
+  },
+  {
+    "id": "library.create",
+    "reviewed": false
+  },
+  {
+    "id": "library.libraryTools",
+    "reviewed": false
+  },
+  {
+    "id": "library.searchType",
+    "reviewed": false
+  },
+  {
+    "id": "library.filter",
+    "reviewed": false
+  },
+  {
+    "id": "library.sort",
+    "reviewed": false
+  },
+  {
+    "id": "library.sortOption",
+    "reviewed": false
+  },
+  {
+    "id": "library.filterTags",
+    "reviewed": false
+  },
+  {
+    "id": "library.allTags",
+    "reviewed": false
+  },
+  {
+    "id": "library.bibleLayoutAndTranslations",
+    "reviewed": false
+  },
+  {
+    "id": "library.contentType",
+    "reviewed": false
+  },
+  {
+    "id": "library.allItems",
+    "reviewed": false
+  },
+  {
+    "id": "library.typeOption",
+    "reviewed": false
+  },
+  {
+    "id": "library.resetFilters",
+    "reviewed": false
+  },
+  {
+    "id": "library.createSlideshow",
+    "reviewed": false
+  },
+  {
+    "id": "library.cancel",
+    "reviewed": false
+  },
+  {
+    "id": "library.libraryPanel",
+    "reviewed": false
+  },
+  {
+    "id": "library.selectImage",
+    "reviewed": false
+  },
+  {
+    "id": "library.emptyAction",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.songDatabase",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.songImport",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.songExport",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.bibleTools",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.bibleTranslations",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.bibleImport",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.imageImport",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.imageSlideshow",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.imageWatch",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.videoImport",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.videoConversion",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.conversionRow",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.videoEmpty",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.slideCreate",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.slidePowerpoint",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.slideCountdown",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.noteCreate",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.noteAlert",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.editSong",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.deleteSong",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.passagePreview",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.passageOpen",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.passageRemove",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.mediaOptions",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.mediaRemove",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.documentEdit",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.documentDelete",
+    "reviewed": false
+  },
+  {
+    "id": "libraryMenu.importDetails",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.keepEditing",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.discardChanges",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.title",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.useTitleAsTitle",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.openExisting",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.saveAnyway",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.lyrics",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.undo",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.songDetailsOptional",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.authorsSeparateWithSemicolons",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.copyright",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.publisher",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.key",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.keySuggestion",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.tempoBPM",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.comments",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.moreOptions",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.cCLINumber",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.tagsCommaSeparated",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.tagSuggestion",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.language",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.workspaceLanguage",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.english",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.filipino",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.otherLanguage",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.linesPerSlide",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.useDefault",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.lineCount",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.customArrangement",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.cancel",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.saveAndAddToService",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.saveSong",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.applyLive",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.selectAll",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.clearSelection",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.exportSelected",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.exportSelectedJSON",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.exportSelectedText",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.exportOpenLyrics",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.exportSongDetailsText",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.manageSelectedSongs",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.renamePrefix",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.bulkRename",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.mergeIntoFirstSelected",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.deleteSelected",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.libraryTools",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.usageHistory",
+    "reviewed": false
+  },
+  {
+    "id": "songTools.optimizeLibrary",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.fontFamily",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.copyrightFooter",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.saveTranslationSettings",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.reference",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.verseNumbers",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.findPassage",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.goLiveShiftEnter",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.bookSuggestion",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.previewSlide",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.sendLive",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.usePassage",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.addPassageToService",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.previous",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.next",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.arrowNavigation",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.favoritePassage",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.saveDefaults",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.translationSettings",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.primaryBibleTranslationSelect",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.bibleDisplayModeSelect",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.translationSelect",
+    "reviewed": false
+  },
+  {
+    "id": "biblePanel.versesPerSlideSelect",
+    "reviewed": false
+  },
+  {
+    "id": "bibleImport.translationName",
+    "reviewed": false
+  },
+  {
+    "id": "bibleImport.permission",
+    "reviewed": false
+  },
+  {
+    "id": "bibleImport.cancel",
+    "reviewed": false
+  },
+  {
+    "id": "bibleImport.importTranslation",
+    "reviewed": false
+  },
+  {
+    "id": "bibleImport.mapSelect",
+    "reviewed": false
+  },
+  {
+    "id": "localFiles.importImage",
+    "reviewed": false
+  },
+  {
+    "id": "localFiles.importPowerPoint",
+    "reviewed": false
+  },
+  {
+    "id": "localFiles.add",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.title",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.videoPreview",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.trimStart",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.trimEnd",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.videoLoop",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.videoMute",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.volume",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.brightness",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.contrast",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.convertToH264MP4UsingLocalFFmpeg",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.duration",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.includeBackground",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.useThisBackground",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.useInheritedBackground",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.cancel",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.saveOptions",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideshowTitle",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.secondsPerImage",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideshowLoop",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.cancel2",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.saveSlideshow",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.documentTitle",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.autoAdvance",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.loopAnnouncements",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slide",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.addSlide",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.moveSlideUp",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.moveSlideDown",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.removeSlide",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.targetTime",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.countdownDuration",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.countdownMessage",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideText",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.font",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.textColor",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.backgroundColor",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.maxTextSize",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideDuration",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.notes",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.cancel3",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.save",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.mediaSizingSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.backgroundScopeSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.itemSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.songSectionSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.imageSizingSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.countdownModeSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.countdownFormatSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideImageSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideBackgroundSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.textAlignmentSelect",
+    "reviewed": false
+  },
+  {
+    "id": "mediaEditors.slideTransitionSelect",
+    "reviewed": false
+  },
+  {
+    "id": "service.serviceList",
+    "reviewed": false
+  },
+  {
+    "id": "service.addContentFromTheLibrary",
+    "reviewed": false
+  },
+  {
+    "id": "service.chooseAServiceItem",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.rename",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.note",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.color",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.up",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.down",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.duplicate",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.remove",
+    "reviewed": false
+  },
+  {
+    "id": "serviceMenu.itemOptions",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.itemTitle",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.serviceAndStageNotes",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.colorTag",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.estimatedDuration",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.autoAdvance",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.loop",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.itemThemeSelect",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.itemBackgroundSelect",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.cancel",
+    "reviewed": false
+  },
+  {
+    "id": "servicePlanner.saveItemOptions",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.preview",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.live",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.playLiveVideoPauseLiveVideo",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.restart",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.unmuteMute",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.liveVideoPosition",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.previewTextSize",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.maximumTextSize",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.applyToPreview",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.moreTextFormatting",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.presentationControls",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.presentationOptions",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.previousPreviewSlide",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.nextPreviewSlide",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.goLive",
+    "reviewed": false
+  },
+  {
+    "id": "presentation.quickEditLiveSong",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.textFormatting",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.stageDisplay",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.presentationThemes",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.blackout",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.clear",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.logo",
+    "reviewed": false
+  },
+  {
+    "id": "presentationMenu.freeze",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.quickSendType",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.typeOption",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.translation",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.parallel",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.parallelTranslation",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.bibleTools",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.translationSettings",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.multilineNotice",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.scrollAlert",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.alertDuration",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.saveAlertToLibrary",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.add",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.done",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.quickSend",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.options",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.typeTab",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.entry",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.noticeText",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.bibleReference",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.alertText",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.preview",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.goLive",
+    "reviewed": false
+  },
+  {
+    "id": "quickBar.stopAlert",
+    "reviewed": false
+  }
+]

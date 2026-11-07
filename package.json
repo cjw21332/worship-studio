@@ -1,0 +1,140 @@
+{
+  "name": "worship-studio",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "npm run build && electron .",
+    "build": "tsc --noEmit && vite build && esbuild backend/main.ts backend/preload.ts backend/bible-worker.ts backend/media-worker.ts backend/output-preload.ts --bundle --platform=node --format=cjs --external:electron --outdir=dist-electron --out-extension:.js=.cjs",
+    "start": "electron .",
+    "postbuild": "node scripts/copy-resources.mjs",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "test:output": "node scripts/output-smoke.mjs",
+    "test:soak": "node scripts/soak.mjs",
+    "package:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
+    "package:win": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "package:check": "node scripts/package-check.mjs",
+    "test:smoke": "npm run build && node scripts/check-smoke.mjs",
+    "test:coverage": "node --experimental-test-coverage --import tsx --test tests/*.test.ts",
+    "check:contrast": "tsx scripts/check-contrast.ts",
+    "test:redesign": "npm run build && node scripts/redesign-smoke.mjs && node scripts/redesign-audit.mjs",
+    "shots:redesign": "node scripts/redesign-shots.mjs after",
+    "test:ui2": "npm run build && node scripts/ui2-smoke.mjs && node scripts/ui2-parity.mjs && node scripts/ui2-audit.mjs",
+    "test:ui2:smoke": "node scripts/ui2-smoke.mjs",
+    "test:ui2:parity": "node scripts/ui2-parity.mjs",
+    "test:ui2:audit": "node scripts/ui2-audit.mjs",
+    "shots:ui2": "node scripts/ui2-shots.mjs after"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "electron-updater": "^6.8.11",
+    "fast-xml-parser": "^5.11.2",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "concurrently": "^9.0.0",
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0",
+    "wait-on": "^8.0.0"
+  },
+  "description": "Offline worship service planning, lyrics, scripture and safe multi-display presentation",
+  "author": {
+    "name": "Worship Studio contributors"
+  },
+  "license": "UNLICENSED",
+  "overrides": {
+    "minimatch@10.2.6": "^11.0.3"
+  },
+  "build": {
+    "appId": "org.worshipstudio.desktop",
+    "productName": "Worship Studio",
+    "directories": {
+      "output": "release",
+      "buildResources": "packaging"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "!node_modules/**/*",
+      "!dist-electron/resources/bibles/{web,asv,ylt}.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "extraFiles": [
+      {
+        "from": "packaging/user-files",
+        "to": "User Files",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "dist-electron/*worker.cjs",
+      "dist-electron/export-powerpoint.ps1",
+      "dist-electron/resources/bundled-bibles.db"
+    ],
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
+    "compression": "normal",
+    "publish": null,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Worship-Studio-${version}-${arch}-setup.${ext}",
+      "signAndEditExecutable": true,
+      "icon": "packaging/icon.ico"
+    },
+    "nsis": {
+      "include": "packaging/installer.nsh",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Worship Studio",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false,
+      "installerIcon": "packaging/icon.ico",
+      "uninstallerIcon": "packaging/icon.ico"
+    },
+    "portable": {
+      "artifactName": "Worship-Studio-${version}-${arch}-portable.${ext}"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+const { _electron: electron } = require('@playwright/test');
+const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
+(async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'worship-bible-check-'));
+ const file=path.join(dir,'sample.json');fs.writeFileSync(file,JSON.stringify({format:'worship-studio-bible-v1',name:'Test Bible',abbreviation:'TST',verses:[{bookId:43,chapter:3,verse:16,text:'First verse'},{bookId:43,chapter:3,verse:17,text:'Second verse'}]}));
+ const app=await electron.launch({args:['.',`--user-data-dir=${dir}`],timeout:30000});
+ try{
+  const win=await app.firstWindow();await win.getByRole('button',{name:'Close dialog'}).click();
+  await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});},file);
+  await win.evaluate(async()=>{const preview=await window.studio.bible('import-preview',{});await window.studio.bible('import-commit',{token:preview.token,permissionConfirmed:true});});
+  await win.evaluate(async()=>{const data=await window.studio.bible('initial',{});await window.studio.bible('translation-settings',{translationId:data.translations[0].id,settings:{fontFamily:'Georgia'}});});
+  await win.keyboard.press('Control+b');
+  const modal=win.getByRole('dialog',{name:'Quick Bible passage'});
+  await modal.getByRole('textbox',{name:'Reference'}).fill('John 3:16-17');
+  await modal.getByRole('button',{name:'Find passage'}).click();
+  await modal.getByRole('button',{name:'Select all',exact:true}).click();
+  await modal.getByRole('button',{name:'Preview selected together'}).click();
+  const preview=await win.evaluate(()=>window.studio.presentation());
+  if(!preview.preview?.bible?.columns[0].text.includes('First verse')||!preview.preview.bible.columns[0].text.includes('Second verse')||preview.preview.bible.columns[0].fontFamily!=='Georgia')throw Error('Combined preview missing verses or selected font');
+  await modal.getByRole('button',{name:'Add selected together'}).click();
+  await win.waitForTimeout(500);
+  const items=await win.evaluate(()=>window.studio.service());
+  if(items.length!==1||items[0].slides.length!==1||!items[0].slides[0].includes('Second verse'))throw Error('Combined service slide failed');
+  await modal.getByRole('button',{name:'Close dialog'}).click();
+  await win.locator('[data-help-id="service.row"]').first().click();
+  await win.locator('.ws-slide-words').getByText('First verse',{exact:false}).waitFor();
+  await win.getByRole('tab',{name:'Bible',exact:true}).click();
+  await win.getByRole('textbox',{name:'Search Bible'}).fill('');
+  await win.getByRole('button',{name:'Library tools'}).click();
+  await win.getByRole('menuitem',{name:'Select passages to remove'}).click();
+  await win.getByRole('button',{name:'Select all shown'}).click();
+  const remove=win.getByRole('button',{name:/Remove selected \(/});
+  const countLabel=await remove.textContent();if(!/\([1-9]\d*\)/.test(countLabel))throw Error('Selection count missing: '+countLabel);
+  await app.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>0;});
+  win.on('dialog',dialog=>dialog.accept());
+  await remove.click();
+  await win.getByText('Selected passages removed.').waitFor();
+  const saved=await win.evaluate(()=>window.studio.bible('initial',{}));
+  if(saved.recent.length||saved.favorites.length)throw Error('Selected passage was not removed');
+  console.log('Text slide list and selected-passage removal passed.');
+  console.log('Bible import, passage lookup, selection, combined preview and service slide passed.');
+ }finally{await app.close();fs.rmSync(dir,{recursive:true,force:true});}
+})().catch(e=>{console.error(e);process.exitCode=1});

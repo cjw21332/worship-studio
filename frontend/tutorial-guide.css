@@ -1,0 +1,9 @@
+.tutorial-layout{display:grid;grid-template-columns:minmax(180px,230px) minmax(0,1fr);gap:24px}
+.tutorial-layout nav label{margin-bottom:6px}
+.tutorial-topics{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.tutorial-topics button{justify-content:flex-start;text-align:left}
+.tutorial-topics button[aria-current]{background:var(--accent-soft);border-color:var(--accent);font-weight:700}
+.tutorial-content h2{margin:14px 0 8px}
+.tutorial-content ol{padding-left:24px}
+.tutorial-content li{padding:4px 0;line-height:1.55}
+@media(max-width:650px){.tutorial-layout{grid-template-columns:1fr;gap:16px}.tutorial-topics{flex-direction:row;overflow-x:auto}.tutorial-topics button{white-space:nowrap}.tutorial-content h2{margin-top:10px}}

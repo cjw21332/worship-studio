@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dist-electron/
+*.db
+*.db-shm
+*.db-wal
+
+.work/
+release/
+packaging/.cache/
+
+# Local credentials, machine settings, and generated reports
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.pfx
+*.p12
+*.log
+coverage/
+test-results/
+playwright-report/
+.DS_Store
+Thumbs.db

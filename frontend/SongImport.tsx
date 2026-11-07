@@ -1,0 +1,11 @@
+import {useDeskTranslate} from './i18n';
+import {useEffect,useState} from 'react';
+import {Modal} from './ui';
+type Candidate={song:{title:string;author?:string;lyrics:string;publisher:string;copyright:string;key:string;tempo:number;notes:string};duplicateIds:string[]};
+export function SongImport({onClose,onComplete,onError}:{onClose:()=>void;onComplete:(token:string,indices:number[])=>Promise<unknown>;onError:(message:string)=>void}){
+ const tr=useDeskTranslate();
+
+ const [data,setData]=useState<{token:string;format:string;warnings:string[];candidates:Candidate[]}|null>(null),[selected,setSelected]=useState<number[]>([]),[busy,setBusy]=useState(true);
+ useEffect(()=>{window.studio.songImport().then(v=>{if(!v){onClose();return;}setData(v);setSelected(v.candidates.flatMap((c,n)=>c.duplicateIds.length?[]:[n]));}).catch(e=>{onError(String(e));onClose();}).finally(()=>setBusy(false));},[]);
+ return <Modal title={tr("Preview song import")} wide onClose={onClose}><p className="hint">{tr("Review songs before saving. Existing matches are unchecked to prevent duplicates.")}</p>{busy?<p role="status">{tr("Reading file…")}</p>:<>{data?.warnings.map(w=><p role="status" key={w}>{tr(w)}</p>)}{data?.format==='openlyrics'&&<p>{tr('OpenLyrics fields: title, authors, publisher, copyright, comments, key, tempo, tags and lyrics.')}</p>}{data?.candidates.map((c,n)=><label className="row library-row" key={n}><input data-help-id="songImport.undefined" type="checkbox" checked={selected.includes(n)} onChange={e=>setSelected(e.target.checked?[...selected,n]:selected.filter(v=>v!==n))}/><span><strong>{c.song.title}</strong><small>{c.duplicateIds.length?tr("Duplicate title or lyrics — review before importing"):c.song.author||tr('New song')}</small><small>{[c.song.publisher,c.song.copyright,c.song.key,c.song.tempo||'',c.song.notes].filter(Boolean).join(' · ')}</small><p>{c.song.lyrics.slice(0,180)}</p></span></label>)}<div className="dialog-actions"><button data-help-id="songImport.cancel" onClick={onClose}>{tr("Cancel")}</button><button data-help-id="songImport.import" className="primary" disabled={!selected.length||busy} onClick={()=>{if(!data)return;setBusy(true);void onComplete(data.token,selected).finally(()=>setBusy(false));}}>{tr("Import")}{' '}{selected.length}{' '}{tr("songs")}</button></div></>}</Modal>;
+}

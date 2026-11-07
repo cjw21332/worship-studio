@@ -1,0 +1,7 @@
+import {visiblePresentation,type Presentation} from '../backend/presentation';
+import type {OutputStatus} from './OutputSettings';
+export function acceptSnapshot(current:Presentation,incoming:Presentation):Presentation{return !Number.isSafeInteger(incoming.revision)||incoming.revision>=current.revision?incoming:current;}
+export function shortenPath(path:string,max=42){if(path.length<=max)return path;const name=path.split(/[\\/]/).at(-1)||'',tail=Math.max(Math.floor((max-1)/2),Math.min(name.length,max-9));return path.slice(0,max-tail-1)+'…'+path.slice(-tail);}
+export function outputView(status:OutputStatus|null,state:Presentation){const active=status?.outputs.filter(o=>o.armed&&o.connected)||[],chosen=active.find(o=>o.role==='audience')??active.find(o=>o.role==='audience-secondary')??active.find(o=>o.role==='rehearsal')??active[0],rehearsal=chosen?.role==='rehearsal',stageOnly=chosen?.role==='stage'||chosen?.role==='confidence';const display=status?.displays.find(d=>d.id===chosen?.displayId)?.label||chosen?.role||'';
+ // Existing stage/confidence output keeps its clock visible during audience blackout.
+ const kind=!chosen?'off':visiblePresentation(state).blackout&&!stageOnly?'black':state.freeze?'frozen':'live';return {kind,display,rehearsal,stageOnly,role:chosen?.role,label:kind==='off'?'Output off':kind==='frozen'?'Frozen':kind==='black'?'Armed, showing black':'LIVE',message:kind==='off'?'Output off. Nothing is on any screen.':kind==='black'?'Armed. Screen is black.':kind==='frozen'?'Frozen':'LIVE on {display}'} as const;}
