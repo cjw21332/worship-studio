@@ -60,14 +60,16 @@ export function migrateSongDatabase(db:DatabaseSync,backupPath?:string){
  }finally{db.exec('PRAGMA foreign_keys=ON');}
 }
 
-export function optimizeSongDatabase(db:DatabaseSync,path:string){
+export function optimizeSongDatabase(db:DatabaseSync,path:string,change?:()=>void,onStage?:(stage:string)=>void){
  if(path===':memory:')throw new Error('A persistent workspace is required to optimize the library.');
- const backupPath=backupSongsDatabase(db,path)!;
+ onStage?.('backup');const backupPath=backupSongsDatabase(db,path)!;
  const before=hashes(db),backup=new DatabaseSync(backupPath,{readOnly:true});
  try{if(!equal(before,hashes(backup)))throw new Error('Songs changed after the backup; optimization was canceled.');}finally{backup.close();}
  const size=()=>[path,path+'-wal'].reduce((sum,file)=>sum+(existsSync(file)?statSync(file).size:0),0);
  const beforeBytes=size();
+ onStage?.('consolidate');change?.();const expected=hashes(db);
+ onStage?.('compact');
  db.exec('PRAGMA wal_checkpoint(TRUNCATE); VACUUM; PRAGMA wal_checkpoint(TRUNCATE)');
- if(!equal(before,hashes(db)))throw new Error('Song content changed while the library was being optimized. The backup is available at '+backupPath);
- return {bytesSaved:beforeBytes-size(),songsUnchanged:before.size};
+ if(!equal(expected,hashes(db)))throw new Error('Song content changed while the library was being optimized. The backup is available at '+backupPath);
+ return {bytesSaved:beforeBytes-size(),songsUnchanged:expected.size};
 }

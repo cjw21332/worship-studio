@@ -1,32 +1,19 @@
 {
   "name": "worship-studio",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "npm run build && electron .",
-    "build": "tsc --noEmit && vite build && esbuild backend/main.ts backend/preload.ts backend/bible-worker.ts backend/media-worker.ts backend/output-preload.ts --bundle --platform=node --format=cjs --external:electron --outdir=dist-electron --out-extension:.js=.cjs",
+    "build": "vite build && esbuild backend/main.ts backend/preload.ts backend/bible-worker.ts backend/media-worker.ts backend/song-optimize-worker.ts backend/output-preload.ts --bundle --platform=node --format=cjs --external:electron --minify --target=es2022 --outdir=dist-electron --out-extension:.js=.cjs",
     "start": "electron .",
     "postbuild": "node scripts/copy-resources.mjs",
     "test": "tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit",
-    "smoke": "npm run build && node scripts/smoke.mjs",
-    "test:output": "node scripts/output-smoke.mjs",
-    "test:soak": "node scripts/soak.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig_cto.json",
     "package:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
     "package:win": "npm run build && electron-builder --win nsis portable --x64 --publish never",
-    "package:check": "node scripts/package-check.mjs",
-    "test:smoke": "npm run build && node scripts/check-smoke.mjs",
-    "test:coverage": "node --experimental-test-coverage --import tsx --test tests/*.test.ts",
-    "check:contrast": "tsx scripts/check-contrast.ts",
-    "test:redesign": "npm run build && node scripts/redesign-smoke.mjs && node scripts/redesign-audit.mjs",
-    "shots:redesign": "node scripts/redesign-shots.mjs after",
-    "test:ui2": "npm run build && node scripts/ui2-smoke.mjs && node scripts/ui2-parity.mjs && node scripts/ui2-audit.mjs",
-    "test:ui2:smoke": "node scripts/ui2-smoke.mjs",
-    "test:ui2:parity": "node scripts/ui2-parity.mjs",
-    "test:ui2:audit": "node scripts/ui2-audit.mjs",
-    "shots:ui2": "node scripts/ui2-shots.mjs after"
+    "test:coverage": "node --experimental-test-coverage --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
@@ -61,7 +48,7 @@
   "author": {
     "name": "Worship Studio contributors"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "overrides": {
     "minimatch@10.2.6": "^11.0.3"
   },
@@ -93,6 +80,7 @@
     "asarUnpack": [
       "dist-electron/*worker.cjs",
       "dist-electron/export-powerpoint.ps1",
+      "dist-electron/resources/starting-library.db",
       "dist-electron/resources/bundled-bibles.db"
     ],
     "npmRebuild": false,

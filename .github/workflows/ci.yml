@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  typecheck-and-test:
+    name: TypeCheck + Tests
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Type Check
+        run: npm run typecheck
+
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Build Production
+        run: npm run build
+
+  packaging-test:
+    name: Windows Packaging Test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    needs: typecheck-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Test Packaging (dir only, no installer)
+        run: npm run package:dir
+
+      - name: Upload Packaging Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-unpacked
+          path: release/win-unpacked/
+          retention-days: 1
+
+

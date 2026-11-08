@@ -53,6 +53,10 @@ export function takeLive(state:Presentation):Presentation{
  return updatePresentation(state,{live:state.preview,blackout:false,clear:false,logo:false});
 }
 export function blackout(state:Presentation):Presentation{return updatePresentation(state,{blackout:true});}
+/** Check both the live slide and, after asynchronous preparation, intervening changes. */
+export function canAutoAdvance(state:Presentation,itemId:string,index:number,revision?:number):boolean{
+ return !state.freeze&&!state.blackout&&!state.clear&&!state.logo&&state.live?.itemId===itemId&&(state.live.index??0)===index&&(revision===undefined||state.revision===revision);
+}
 export function toggleOutput(state:Presentation,mode:'blackout'|'clear'|'logo'):Presentation{
  return updatePresentation(state,{blackout:false,clear:false,logo:false,[mode]:!state[mode]});
 }

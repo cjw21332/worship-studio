@@ -16,7 +16,7 @@ export const items = sqliteTable('service_items', {id:text('id').primaryKey(), p
 export type Item = {id:string;position:number;title:string;slides:string[];kind?:string;sourceId?:string;notes?:string;stageSlides?:string[];sectionIds?:string[];songSnapshot?:SongContent;biblePages?:import('./bible').BiblePage[];mediaPages?:MediaPage[];mediaDocumentId?:string;autoAdvance?:boolean;loop?:boolean;durations?:number[];[key:string]:unknown};
 export type Usage={id:string;songId:string|null;title:string;serviceName:string;usedAt:string;kind:'song'|'bible';reference:string;translations:string};
 export function openStore(path:string) {
-  const raw = new DatabaseSync(path); raw.exec('PRAGMA foreign_keys = ON;');
+  const raw = new DatabaseSync(path); raw.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA cache_size = -64; PRAGMA temp_store = MEMORY;');
   const version = Number(raw.prepare('PRAGMA user_version').get()?.user_version);
   if (version > 8) {raw.close(); throw new Error('This database was created by a newer version.');}
   let backupPath:string|undefined;
@@ -36,7 +36,15 @@ export function openStore(path:string) {
   if(version<6)raw.exec(`BEGIN;ALTER TABLE assets ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}';CREATE TABLE media_documents(id TEXT PRIMARY KEY,title TEXT NOT NULL,kind TEXT NOT NULL,document TEXT NOT NULL);CREATE TABLE media_backgrounds(scope TEXT NOT NULL,key TEXT NOT NULL,asset_id TEXT NOT NULL,PRIMARY KEY(scope,key));CREATE TABLE workspace_preferences(key TEXT PRIMARY KEY,value TEXT NOT NULL);PRAGMA user_version=6;COMMIT;`);
   if(version<7)raw.exec(`BEGIN;ALTER TABLE usage_history ADD COLUMN kind TEXT NOT NULL DEFAULT 'song';ALTER TABLE usage_history ADD COLUMN reference TEXT NOT NULL DEFAULT '';ALTER TABLE usage_history ADD COLUMN translations TEXT NOT NULL DEFAULT '';PRAGMA user_version=7;COMMIT;`);
   if(version<8){try{migrateSongDatabase(raw,backupPath);}catch(error){raw.close();throw error;}}
-  const listItems = ():Item[] => (raw.prepare('SELECT id,position,title,slides,metadata FROM service_items ORDER BY position').all() as {id:string;position:number;title:string;slides:string;metadata:string}[]).map(({metadata,...i})=>({...JSON.parse(metadata),...i,slides:z.array(z.string()).parse(JSON.parse(i.slides))}));
+  let itemsCache:Item[]|undefined,itemsCacheVersion=-1;
+  const listItems=():Item[]=>{
+    const version=songVersion();
+    if(!itemsCache||version!==itemsCacheVersion){
+      itemsCache=(raw.prepare('SELECT id,position,title,slides,metadata FROM service_items ORDER BY position').all() as {id:string;position:number;title:string;slides:string;metadata:string}[]).map(({metadata,...i})=>({...JSON.parse(metadata),...i,slides:z.array(z.string()).parse(JSON.parse(i.slides))}));
+      itemsCacheVersion=version;
+    }
+    return structuredClone(itemsCache);
+  };
   type SongRow={id:string;title:string;lyrics:string;author:string|null;copyright:string|null;detail:string;usage_count:number;last_used:string|null};
   const selectSongs='SELECT s.id,s.title,s.lyrics,s.author,s.copyright,s.detail,(SELECT COUNT(*) FROM usage_history u WHERE u.song_id=s.id) AS usage_count,(SELECT MAX(used_at) FROM usage_history u WHERE u.song_id=s.id) AS last_used FROM songs s';
   const decodeSong=({detail,usage_count,last_used,...row}:SongRow):Song=>{
@@ -44,17 +52,51 @@ export function openStore(path:string) {
     if(!stored.createdAt||!stored.updatedAt)raw.prepare('UPDATE songs SET detail=? WHERE id=?').run(JSON.stringify({...stored,createdAt:stored.createdAt||song.createdAt,updatedAt:stored.updatedAt||song.updatedAt}),row.id);
     return {...song,id:row.id,usageCount:Number(usage_count||0),lastUsed:last_used};
   };
-  const listSongs=():Song[]=>(raw.prepare(selectSongs+' ORDER BY s.title COLLATE NOCASE').all() as SongRow[]).map(decodeSong);
+  let songCache:Song[]|undefined,songCacheVersion=-1;
+  const songVersion=()=>{const changes=Number(raw.prepare('SELECT total_changes() AS changes').get()!.changes);const pragma=raw.prepare('PRAGMA data_version').get()!;const dataVersion=Number(pragma!.data_version||0);return changes * 1000000 + dataVersion;};
+  const listSongs=():Song[]=>{
+    const version=songVersion();
+    if(!songCache||version!==songCacheVersion){
+      songCache=(raw.prepare(selectSongs+' ORDER BY s.title COLLATE NOCASE').all() as SongRow[]).map(decodeSong);
+      songCacheVersion=version;
+    }
+    // Callers may edit their copy; cached database records must remain immutable.
+    return songCache.map(song=>({...song,usageCount:song.usageCount,lastUsed:song.lastUsed}));
+  };
   const getSong=(id:string)=>{const row=raw.prepare(selectSongs+' WHERE s.id=?').get(id) as SongRow|undefined;if(!row)throw new Error('Song not found');return decodeSong(row);};
   const compact=(song:SongContent)=>songStorageRecord(song,{language:'en',linesPerSlide:0});
   const writeSong=(id:string,song:SongContent)=>{const record=compact(song),previous=raw.prepare('SELECT detail FROM songs WHERE id=?').get(id);if(previous){try{const old=JSON.parse(String(previous.detail));if(old.tempo===song.tempo&&song.tempo!==0&&(song.tempo<20||song.tempo>300))record.detail.tempo=song.tempo;}catch{/* Invalid legacy JSON is not replaced by a successful normal edit. */}}const result=raw.prepare('UPDATE songs SET title=?,lyrics=?,author=?,copyright=?,detail=? WHERE id=?').run(record.title,record.lyrics,record.author,record.copyright,JSON.stringify(record.detail),id);if(!result.changes)throw new Error('Song not found');};
   const insertSong=(input:unknown)=>{const record=compact(normalizeSong(input)),id=randomUUID();raw.prepare('INSERT INTO songs(id,title,lyrics,author,copyright,detail) VALUES(?,?,?,?,?,?)').run(id,record.title,record.lyrics,record.author,record.copyright,JSON.stringify(record.detail));return id;};
   const transaction=<T>(operation:()=>T):T=>{raw.exec('BEGIN IMMEDIATE');try{const result=operation();raw.exec('COMMIT');return result;}catch(error){raw.exec('ROLLBACK');throw error;}};
+  // Only consolidate records with identical content and metadata; matching titles alone can be different arrangements.
+  const duplicateGroups=()=>{
+   const groups=new Map<string,string[]>();
+   const sorted=(value:any):any=>Array.isArray(value)?value.map(sorted):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,sorted(value[key])])):value;
+   for(const row of raw.prepare('SELECT id,title,lyrics,author,copyright,detail FROM songs ORDER BY rowid').all() as {id:string;title:string;lyrics:string;author:string|null;copyright:string|null;detail:string}[]){
+    try{const detail=JSON.parse(row.detail);delete detail.createdAt;delete detail.updatedAt;
+     if(Array.isArray(detail.sections)){const ids=new Map(detail.sections.map((section:any,index:number)=>[section.id,index]));detail.sections=detail.sections.map(({id,...rest}:any)=>rest);if(Array.isArray(detail.arrangement))detail.arrangement=detail.arrangement.map((id:string)=>ids.has(id)?ids.get(id):id);}
+     const key=JSON.stringify(sorted({title:row.title,lyrics:row.lyrics,author:row.author||'',copyright:row.copyright||'',detail}));const group=groups.get(key)||[];group.push(row.id);groups.set(key,group);
+    }catch{/* Opaque metadata is never merged automatically. */}
+   }
+   return [...groups.values()].filter(group=>group.length>1);
+  };
   const songSnapshot=(song:Song,maxLines=4)=>{const slides=buildSlides(song,song.linesPerSlide??maxLines);const {id,usageCount:_,lastUsed:__,...snapshot}=song;return {slides:slides.map(s=>s.text),metadata:JSON.stringify({kind:'song',sourceId:id,notes:song.notes,stageSlides:slides.map(s=>s.stageText),sectionIds:slides.map(s=>s.sectionId),songSnapshot:snapshot})};};
   const decodeAsset=({metadata,...asset}:{id:string;name:string;title:string;metadata:string}):MediaAsset=>{const extra=JSON.parse(metadata);return {...extra,...asset,kind:extra.kind==='video'?'video':'image',options:AssetOptions.parse(extra.options||{})};};
   const asset=(id:string)=>{const row=raw.prepare('SELECT id,name,title,metadata FROM assets WHERE id=?').get(id) as {id:string;name:string;title:string;metadata:string}|undefined;return row?decodeAsset(row):undefined;};
   return {
     bible,
+    seedStartingLibrary:(file:string)=>{
+      if(raw.prepare("SELECT 1 FROM workspace_preferences WHERE key='starting-library-v1'").get())return;
+      raw.prepare('ATTACH DATABASE ? AS starter').run(file);
+      try{transaction(()=>{
+       raw.exec(`INSERT OR IGNORE INTO songs(id,title,lyrics,author,copyright,detail)
+        SELECT s.id,s.title,s.lyrics,s.author,s.copyright,s.detail FROM starter.songs s
+        WHERE NOT EXISTS (SELECT 1 FROM songs existing WHERE existing.title=s.title AND existing.lyrics=s.lyrics);
+        INSERT OR IGNORE INTO canonical_translations SELECT * FROM starter.canonical_translations;
+        INSERT OR IGNORE INTO canonical_verses SELECT * FROM starter.canonical_verses;
+        INSERT INTO workspace_preferences(key,value) VALUES('starting-library-v1','true');`);
+      });}finally{raw.exec('DETACH DATABASE starter');}
+    },
     seedBundledBibles:(file:string)=>{
       const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000003'];
       if(ids.every(id=>bible.translations().some(t=>t.id===id)))return;
@@ -85,7 +127,16 @@ export function openStore(path:string) {
     searchBible:(id:string,query:string)=>raw.prepare('SELECT book,chapter,verse,body FROM verses WHERE translation_id=? AND (body LIKE ? OR book || \' \' || chapter || \':\' || verse LIKE ?) ORDER BY rowid LIMIT 100').all(id,'%'+query+'%','%'+query+'%'),
     addText:(title:string,body:string)=>{const position=Number(raw.prepare('SELECT COALESCE(MAX(position),-1)+1 AS n FROM service_items').get()?.n);raw.prepare('INSERT INTO service_items(id,position,title,slides) VALUES(?,?,?,?)').run(randomUUID(),position,title,JSON.stringify([body]));},
     listSongs,
-    optimizeSongs:()=>optimizeSongDatabase(raw,path),
+    optimizeSongs:(change?:()=>void,onStage?:(stage:string)=>void)=>optimizeSongDatabase(raw,path,change,onStage),
+    duplicateSongGroups:duplicateGroups,
+    consolidateDuplicateSongs:(groups:string[][])=>transaction(()=>{
+      const actual=duplicateGroups();if(JSON.stringify(actual)!==JSON.stringify(groups))throw new Error('Songs changed during optimization. Run it again.');
+      const updateUsage=raw.prepare('UPDATE usage_history SET song_id=? WHERE song_id=?');
+      const updateItems=raw.prepare("UPDATE service_items SET metadata=json_set(metadata,'$.sourceId',?) WHERE json_valid(metadata) AND json_extract(metadata,'$.sourceId')=?");
+      const remove=raw.prepare('DELETE FROM songs WHERE id=?');
+      for(const [keep,...duplicates] of groups)for(const id of duplicates){updateUsage.run(keep,id);updateItems.run(keep,id);remove.run(id);}
+      return groups.reduce((sum,group)=>sum+group.length-1,0);
+    }),
     saveSong:insertSong,
     syncSong:(id:string,input:unknown)=>{z.string().uuid().parse(id);const record=compact(normalizeSong(input));raw.prepare('INSERT INTO songs(id,title,lyrics,author,copyright,detail) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,lyrics=excluded.lyrics,author=excluded.author,copyright=excluded.copyright,detail=excluded.detail').run(id,record.title,record.lyrics,record.author,record.copyright,JSON.stringify(record.detail));return id;},
     listItems,
@@ -94,9 +145,7 @@ export function openStore(path:string) {
     newService:()=>raw.exec('DELETE FROM service_items'),
     updateSong:(id:string,input:unknown)=>writeSong(id,normalizeSong(input,getSong(id))),
     deleteSong:(id:string)=>raw.prepare('DELETE FROM songs WHERE id=?').run(id),
-    bulkRenameSongs:(records:{id:string;title:string}[])=>transaction(()=>{const inputs=z.array(z.object({id:z.string().min(1),title:z.string().trim().min(1).max(200)})).max(10000).parse(records);if(new Set(inputs.map(s=>s.id)).size!==inputs.length)throw new Error('Each song can only be renamed once.');for(const input of inputs)writeSong(input.id,normalizeSong({title:input.title},getSong(input.id)));}),
     deleteSongs:(ids:string[])=>transaction(()=>{if(ids.length>10000||new Set(ids).size!==ids.length)throw new Error('Invalid song selection.');for(const id of ids){getSong(id);raw.prepare('DELETE FROM songs WHERE id=?').run(id);}}),
-    mergeSongs:(keepId:string,removeIds:string[])=>transaction(()=>{if(!removeIds.length||removeIds.includes(keepId)||new Set(removeIds).size!==removeIds.length)throw new Error('Choose a song to keep and distinct duplicates to merge.');const keep=getSong(keepId),removed=removeIds.map(getSong);writeSong(keepId,normalizeSong({authors:[...new Set([...keep.authors,...removed.flatMap(s=>s.authors)])],tags:[...new Set([...keep.tags,...removed.flatMap(s=>s.tags)])],notes:[keep.notes,...removed.map(s=>s.notes)].filter(Boolean).join('\n\n')},keep));for(const id of removeIds){raw.prepare('UPDATE usage_history SET song_id=? WHERE song_id=?').run(keepId,id);raw.prepare('DELETE FROM songs WHERE id=?').run(id);}}),
     recordUsage:(songId:string,serviceName='Untitled service')=>{const song=getSong(songId);raw.prepare('INSERT INTO usage_history(id,song_id,title,service_name,used_at) VALUES(?,?,?,?,?)').run(randomUUID(),songId,song.title,z.string().max(300).parse(serviceName),new Date().toISOString());},
     recordItemUsage:(item:Item,serviceName='Untitled service')=>{
       if(item.kind!=='song'&&item.kind!=='bible')return;

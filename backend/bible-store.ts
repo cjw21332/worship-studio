@@ -1,3 +1,4 @@
+import {normalizeBibleName} from './bible-names';
 import type {DatabaseSync} from 'node:sqlite';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
@@ -43,7 +44,7 @@ export function createBibleStore(raw:DatabaseSync){
  `);
  const translations=():StoredTranslation[]=>(raw.prepare(`SELECT t.id,t.name,t.abbreviation,t.language,t.copyright,t.font_family AS fontFamily,
   (SELECT COUNT(*) FROM canonical_verses v WHERE v.translation_id=t.id) AS verseCount
-  FROM canonical_translations t ORDER BY t.name`).all() as StoredTranslation[]).map(row=>({...row,verseCount:Number(row.verseCount)}));
+  FROM canonical_translations t ORDER BY t.name`).all() as StoredTranslation[]).map(row=>normalizeBibleName({...row,verseCount:Number(row.verseCount)})).sort((a,b)=>a.name.localeCompare(b.name));
  const translation=(id:string):StoredTranslation=>{idInput.parse(id);const row=translations().find(t=>t.id===id);if(!row)throw new Error('Bible translation not found. Import it or choose an installed translation.');return row;};
  const verses=(id:string,bookId?:number):BibleVerse[]=>{
   translation(id);if(bookId!==undefined)z.number().int().min(1).max(66).parse(bookId);
@@ -51,7 +52,7 @@ export function createBibleStore(raw:DatabaseSync){
   return (rows as VerseRecord[]).map(fromRecord);
  };
  const importBibleDocument=(input:unknown,id?:string):{id:string;verseCount:number}=>{
-  const doc: BibleImport=parseBibleImport(JSON.stringify(input));const translationId=id===undefined?randomUUID():idInput.parse(id);
+  const doc: BibleImport=normalizeBibleName(parseBibleImport(JSON.stringify(input)));const translationId=id===undefined?randomUUID():idInput.parse(id);
   raw.exec('SAVEPOINT bible_document');
   try{
    raw.prepare(`INSERT INTO canonical_translations(id,name,abbreviation,language,copyright) VALUES(?,?,?,?,?)

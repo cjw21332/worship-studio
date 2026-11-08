@@ -28,6 +28,7 @@ export const studio={
  songLock:(id:string)=>invoke<void>('songs:lock',id),songUnlock:(id:string)=>invoke<void>('songs:unlock',id),
  songImport:()=>invoke<{token:string;format:string;warnings:string[];candidates:{song:{title:string;author:string;lyrics:string;publisher:string;copyright:string;key:string;tempo:number;notes:string};duplicateIds:string[]}[]}|null>('songs:import-preview'),songImportCommit:(token:string,indices:number[])=>invoke<string>('songs:import-commit',{token,indices}),
  songTools:(action:string,payload:unknown)=>invoke<unknown>('songs:tools',{action,payload}),chooseWorkspace:()=>invoke<string>('workspace:choose'),quickEdit:(itemId:string,song:unknown,maxLines:number)=>invoke<void>('songs:quick-edit',{itemId,song,maxLines}),
+ onSongOptimizeProgress:(callback:(stage:string)=>void)=>{const listener=(_event:Electron.IpcRendererEvent,stage:string)=>callback(stage);ipcRenderer.on('songs:optimize-progress',listener);return()=>{ipcRenderer.removeListener('songs:optimize-progress',listener);};},
  info:()=>invoke<{path:string;version:string}>('workspace:info'),newService:()=>invoke<void>('service:new'),
  media:()=>invoke<Asset[]>('media:list'),importMedia:(kind:string)=>invoke<string>('media:import',kind),addMedia:(id:string)=>invoke<void>('media:add',id),
  transfer:(action:string)=>invoke<string>('files:transfer',action),translations:()=>invoke<Translation[]>('bible:translations'),searchBible:(id:string,query:string)=>invoke<BibleVerse[]>('bible:search',{id,query}),addText:(title:string,body:string)=>invoke<void>('service:text',{title,body}),
@@ -36,7 +37,7 @@ export const studio={
  duplicateItem:(id:string)=>invoke<void>('service:duplicate',id),reorder:(ids:string[])=>invoke<void>('service:reorder',ids),
  songs:()=>invoke<Song[]>('songs:list'),createSong:(input:unknown)=>invoke<string>('songs:create',input),
  service:()=>invoke<Item[]>('service:list'),addSong:(id:string,maxLines=4)=>invoke<Item[]>('service:add',{id,maxLines}),removeItem:(id:string)=>invoke<Item[]>('service:remove',id),
- presentation:()=>invoke<Presentation>('presentation:get'),preview:(slide:Slide)=>invoke<Presentation>('presentation:preview',slide),
+ presentation:()=>invoke<Presentation>('presentation:get'),preview:(slide:Slide|null)=>invoke<Presentation>('presentation:preview',slide),
  previewFontSize:(size:number)=>invoke<Presentation>('presentation:preview-font-size',size),
  takeLive:()=>invoke<Presentation>('presentation:live'),blackout:()=>invoke<Presentation>('presentation:blackout'),toggle:(mode:'blackout'|'clear'|'logo')=>invoke<Presentation>('presentation:toggle',mode)
 };

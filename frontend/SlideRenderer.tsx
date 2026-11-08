@@ -3,7 +3,7 @@ import {FittedText} from './FittedText';
 import {visiblePresentation,type Presentation,type Slide,type SlideStyle,type StageBox,type VideoSlide} from '../backend/presentation';
 
 const css=String.raw`
-.studio-slide{position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;isolation:isolate;container-type:inline-size;background:#101820;color:white;font-family:'Segoe UI',sans-serif}
+.studio-slide{position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;isolation:isolate;container-type:inline-size;background:#FFFFFF;color:#0F161C;font-family:'Segoe UI',sans-serif}
 .studio-slide *{box-sizing:border-box}.studio-slide .background-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none}
 .studio-slide .slide-layer{position:absolute;inset:0;overflow:hidden;transform-origin:center;animation-fill-mode:both;animation-timing-function:ease-out}
 .studio-slide .text-box{position:absolute;min-width:0;min-height:0}.studio-slide .fitted-text{height:100%;width:100%;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -21,7 +21,7 @@ const css=String.raw`
 .studio-slide .countdown-slide strong{font-size:12cqw;line-height:1.1}.studio-slide .countdown-slide .fitted-text{height:20%;flex:none}
 .studio-slide .alert-overlay{position:absolute;left:0;right:0;bottom:10%;min-height:8%;background:#07141de8;color:white;z-index:10;display:flex;align-items:center;overflow:hidden;font-size:2.5cqw;padding:1% 2%}
 .studio-slide .alert-overlay.scrolling>span{display:inline-block;white-space:nowrap;min-width:max-content;animation:studio-alert 24s linear infinite}
-.studio-stage{background:#05090d}.studio-stage .stage-box{position:absolute;border:1px solid #4b5d69;border-radius:5px;overflow:hidden;padding:1%;color:#fff;background:#101820}
+.studio-stage{background:#000000}.studio-stage .stage-box{position:absolute;border:1px solid #2B3A46;border-radius:5px;overflow:hidden;padding:1%;color:#FFFFFF;background:#0B0F12}
 .studio-stage .stage-label{height:11%;min-height:16px;font-size:clamp(14px,1cqw,24px);font-weight:600;color:#b5c7d4}.studio-stage .stage-content{height:85%;position:relative;min-height:0}
 .studio-stage .stage-box[data-box=next]{color:#d6e2e8}.studio-stage .stage-box[data-box=message]{color:#ffe09a;border-color:#97732c}
 .studio-stage .stage-badges{position:absolute;top:0;left:3%;right:3%;height:4%;display:flex;align-items:center;gap:3%;font-size:clamp(14px,1cqw,24px);color:#b5c7d4}.studio-stage .stage-badges strong{color:#ffb0a8}
@@ -81,11 +81,13 @@ export function SlideRenderer({slide:input,state,style:override,mode='audience',
  useSlideStyles();const now=useTime(!state?.freeze&&!!(input?.countdown||state?.live?.countdown||state?.alerts?.some(alert=>alert.expiresAt)));
  if(state&&(mode==='stage'||mode==='confidence'))return <StagePanel state={state} confidence={mode==='confidence'}/>;
  const visible=state?visiblePresentation(state):undefined,slide=visible?visible.live:input;
- const style:SlideStyle={background:'#101820',color:'#ffffff',fontFamily:'Segoe UI',minFontSize:20,maxFontSize:76,margin:6,align:'center',verticalAlign:'center',lineSpacing:1.25,...visible?.theme,...slide?.style,...override};
+ const style:SlideStyle={background:'#FFFFFF',color:'#0F161C',fontFamily:'Segoe UI',minFontSize:20,maxFontSize:76,margin:6,align:'center',verticalAlign:'center',lineSpacing:1.25,...visible?.theme,...slide?.style,...override};
  const transition=slide?.transition??visible?.transition??{name:'none',duration:0,reduceMotion:false};
  const margin=number(style.margin,6,0,30);
  const lower=style.lowerThird;
- const box=style.box??{x:margin,y:lower?72:margin,width:100-margin*2,height:lower?20:82-margin};
+ // Only scripture needs reserved footer space; plain text uses symmetric margins.
+ const textHeight=slide?.bible?82-margin:100-margin*2;
+ const box=style.box??{x:margin,y:lower?72:margin,width:100-margin*2,height:lower?20:textHeight};
  const textStyle:CSSProperties={fontFamily:style.fontFamily,color:style.color,textAlign:style.align,lineHeight:number(style.lineSpacing,1.25,.8,2.5),textShadow:style.shadow,WebkitTextStroke:style.outlineWidth?number(style.outlineWidth,0,0,8)+'px '+(style.outlineColor||'#000'):undefined,alignItems:style.verticalAlign==='top'?'flex-start':style.verticalAlign==='bottom'?'flex-end':'center'};
  const text=(value:string,extra?:CSSProperties)=><FittedText text={value} min={number(style.minFontSize,20,8,200)} max={number(style.maxFontSize,76,8,400)} style={{...textStyle,...extra}}/>;
  const identity=slide?JSON.stringify([slide.itemId,slide.index,slide.text,slide.image,slide.video?.src,slide.bible?.columns.map(c=>c.text)]):'empty';
@@ -104,7 +106,7 @@ export function SlideRenderer({slide:input,state,style:override,mode='audience',
  {slide?.image&&<img className="slide-image" src={slide.image} alt={slide.title} style={{objectFit:style.fit||'contain'}}/>}
  {slide?.video&&<VideoFrame video={slide.video} paused={paused} freezeAt={state?.freeze?state.frozenAt:undefined} fit={style.fit||'contain'} onError={onMediaError}/>}
  {visible?.logo?<div className="logo-mark"><img src="./app-icon.png" alt=""/><span>Worship Studio</span></div>:!visible?.clear&&<div className="slide-layer" key={identity} style={transitionStyle}>
- {slide?.countdown?<div className="countdown-slide">{text(slide.countdown.message||'Service starts in')}<strong>{formatCountdown(slide.countdown.stoppedRemaining??slide.countdown.endsAt-at,slide.countdown.format)}</strong></div>:slide&&!slide.image&&!slide.video&&<div className="text-box" style={{left:number(box.x,margin,0,98)+'%',top:number(box.y,margin,0,98)+'%',width:number(box.width,100-margin*2,2,100-number(box.x,margin,0,98))+'%',height:number(box.height,82-margin,2,100-number(box.y,margin,0,98))+'%',background:lower?'#0009':undefined,padding:lower?'1%':undefined}}>
+ {slide?.countdown?<div className="countdown-slide">{text(slide.countdown.message||'Service starts in')}<strong>{formatCountdown(slide.countdown.stoppedRemaining??slide.countdown.endsAt-at,slide.countdown.format)}</strong></div>:slide&&!slide.image&&!slide.video&&<div className="text-box" style={{left:number(box.x,margin,0,98)+'%',top:number(box.y,margin,0,98)+'%',width:number(box.width,100-margin*2,2,100-number(box.x,margin,0,98))+'%',height:number(box.height,textHeight,2,100-number(box.y,margin,0,98))+'%',background:lower?'#0009':undefined,padding:lower?'1%':undefined}}>
  {bible?(bible.mode==='line-by-line'?<div className="bible-lines">{bible.rows.map(row=><div className="bible-verse-group" key={row.bookId+':'+row.chapter+':'+row.verse}>{row.columns.map(column=><div className="bible-language-line" key={column.translationId}><span className="translation-label">{column.label}</span>{text((bible.showVerseNumbers?row.verse+' ':'')+column.text,{fontFamily:column.fontFamily||style.fontFamily,fontStyle:column.missing?'italic':undefined,opacity:column.missing?.7:1})}</div>)}</div>)}</div>:<div className="bible-columns" style={bible.mode==='stacked'?{gridTemplateRows:'repeat('+bible.columns.length+',minmax(0,1fr))'}:{gridTemplateColumns:'repeat('+bible.columns.length+',minmax(0,1fr))'}}>{bible.columns.map(column=><div className="bible-column" key={column.translationId}><div className="translation-label">{column.label}</div>{text(column.text,{fontFamily:column.fontFamily||style.fontFamily})}</div>)}</div>):text(slide.text)}
  </div>}
  {bible&&<footer className="slide-footer" style={{color:style.footerColor||style.color,fontSize:(number(style.footerSize,28,10,80)/19.2)+'cqw'}}><span>{footer}{bible.continuation?' Â· '+bible.continuation.part+'/'+bible.continuation.total:''}</span><span className="copyright">{copyright}</span></footer>}

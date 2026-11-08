@@ -1,0 +1,58 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature and why it would help your church or workflow.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: "What workflow is painful, missing, or limited today?"
+      placeholder: "Our volunteers struggle with..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: "How should it work? Describe the user experience."
+      placeholder: "Add a button in the Service Planner that..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: "Other tools that do this well? Workarounds you've tried?"
+      placeholder: "FreeShow has this via... ProPresenter does it by..."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - "Song Library / Lyrics"
+        - "Bible / Scripture"
+        - "Service Planning"
+        - "Presentation / Output"
+        - "Themes / Styling"
+        - "Media (Images/Video/PPTX)"
+        - "Remote / Mobile"
+        - "Accessibility"
+        - "Import / Export"
+        - "Settings / Configuration"
+        - "Other"
+    validations:
+      required: true
+  - type: checkboxes
+    id: priority
+    attributes:
+      label: Priority for Your Church
+      options:
+        - label: "Critical — blocks Sunday workflow"
+        - label: "High — significant time savings"
+        - label: "Medium — nice improvement"
+        - label: "Low — future consideration"

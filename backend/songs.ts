@@ -2,7 +2,7 @@ import{cleanSongText,cleanSongLyrics,normalizedAuthors,normalizedTags,normalized
 import {z} from 'zod';
 import {XMLParser,XMLValidator} from 'fast-xml-parser';
 
-export const SectionType=z.enum(['verse','chorus','bridge','prechorus','tag','intro','outro']);
+export const SectionType=z.enum(['verse','chorus','bridge','prechorus','tag','intro','outro','end']);
 export const SectionSchema=z.object({id:z.string().min(1).max(100),type:SectionType,label:z.string().min(1).max(100),lines:z.array(z.string().max(100000)).min(1).max(10000)});
 export type Section=z.infer<typeof SectionSchema>;
 export const SongInput=z.object({
@@ -16,8 +16,8 @@ export type SongContent=z.infer<typeof SongInput> & {createdAt:string;updatedAt:
 export type Song=SongContent & {id:string;usageCount:number;lastUsed:string|null};
 export type SongSlide={text:string;stageText:string;sectionId:string;label:string};
 
-const sectionNames:Record<string,Section['type']>={v:'verse',verse:'verse',c:'chorus',chorus:'chorus',b:'bridge',bridge:'bridge',p:'prechorus',pre:'prechorus',prechorus:'prechorus',t:'tag',tag:'tag',i:'intro',intro:'intro',o:'outro',outro:'outro'};
-const headerPattern=/^\s*(?:\[\s*)?(verse|chorus|bridge|pre(?:\s*-\s*|\s+)?chorus|pre|tag|intro|outro|[vcbptio])\s*(\d*)\s*\]?\s*:?\s*$/i;
+const sectionNames:Record<string,Section['type']>={v:'verse',verse:'verse',c:'chorus',chorus:'chorus',b:'bridge',bridge:'bridge',p:'prechorus',pre:'prechorus',prechorus:'prechorus',t:'tag',tag:'tag',i:'intro',intro:'intro',o:'outro',outro:'outro',e:'end',end:'end'};
+const headerPattern=/^\s*(?:\[\s*)?(verse|chorus|bridge|pre(?:\s*-\s*|\s+)?chorus|pre|tag|intro|outro|end|[vcbptioe])\s*(\d*)\s*\]?\s*:?\s*$/i;
 export function isSectionHeader(line:string):boolean{return headerPattern.test(line);}
 export function parseSections(lyrics:string):Section[]{
  const sections:Section[]=[];let current:Section|null=null;
@@ -44,7 +44,11 @@ export function normalizeSong(input:unknown,base?:SongContent):SongContent{
  if(!sections.length)throw new Error('Enter song lyrics or at least one non-empty section.');
  if(!sections.some(s=>s.lines.some(l=>l.trim()&&!/^(---+|\[slide\]|<split>)$/i.test(l.trim()))))throw new Error('Enter lyrics in at least one section.');
  if(new Set(sections.map(s=>s.id)).size!==sections.length)throw new Error('Section IDs must be unique.');
- const arrangement=song.arrangement.length?song.arrangement:sections.map(s=>s.id);
+ // Ensure arrangement includes all sections if it's missing or incomplete (common on import or legacy data)
+ let arrangement=song.arrangement;
+ if(!arrangement.length || arrangement.length < sections.length){
+  arrangement = sections.map(s => s.id);
+ }
  if(arrangement.some(id=>!sections.some(s=>s.id===id)))throw new Error('The arrangement refers to a section that does not exist.');
  const authors=normalizedAuthors(song.authors.length?song.authors:song.author);
  const now=new Date().toISOString();
@@ -114,7 +118,7 @@ function fromXMLSong(song:any,openLP:boolean):SongContent{
  const verses=array(song.lyrics?.verse);
  const xmlSections:Section[]=openLP?verses.map((verse,index)=>{const named=String(verse['@name']||''),name=named.match(/^([a-z])(\d*)/i),short=String(verse['@type']||name?.[1]||'v').toLowerCase(),type=sectionNames[short]||'verse',number=String(verse['@label']??name?.[2]??index+1),label=type[0].toUpperCase()+type.slice(1)+(number?' '+number:'');const body=verse.lines===undefined?text(verse):array(verse.lines).map(line=>inlineLyrics(typeof line==='string'?line:text(line))).join('\n---\n');return {id:'section-'+(index+1),type,label,lines:body.trim().split(/\r?\n/)};}):[];
  const lyrics=openLP?sectionsToLyrics(xmlSections):text(song.lyrics);
- const authors=openLP?array(properties.authors?.author).map(text):text(song.author).split(/\s*;\s*/).filter(Boolean);
+ const authors=openLP?array(properties.authors?.author).map(text).map(value=>value.trim()).filter(Boolean):text(song.author).split(/\s*;\s*/).filter(Boolean);
  const title=text(openLP?array(properties.titles?.title)[0]:song.title)||'Imported song';
  const numericTempo=Number(text(openLP?properties.tempo:song.tempo));
  const result=normalizeSong({title,authors,lyrics,...(openLP?{sections:xmlSections}:{}),publisher:text(song.publisher||properties.publisher),copyright:text(openLP?properties.copyright:song.copyright),ccliNumber:text(openLP?properties.ccliNo:song.ccli),key:text(openLP?properties.key:song.key),tempo:Number.isFinite(numericTempo)&&numericTempo>=0&&numericTempo<=999?numericTempo:0,tags:openLP?[...array(properties.themes?.theme).map(text),...text(properties.keywords).split(',')].filter(Boolean):[],language:String(song['@xml:lang']||song['@lang']||'en'),notes:text(openLP?properties.comments?.comment:song.comments)});

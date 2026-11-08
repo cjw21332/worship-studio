@@ -1,17 +1,27 @@
 import {dialog,type BrowserWindow} from 'electron';
-import {readFile,writeFile,stat} from 'node:fs/promises';
+import {readFile,stat} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
+import {Worker} from 'node:worker_threads';
+import {unpackedResource} from './native-path';
 import path from 'node:path';
 import {z} from 'zod';
 import {type openStore} from './database';
-import {parseSongFile,previewSongImport,exportSongs} from './songs';
+import {parseSongFile,previewSongImport} from './songs';
 import {createSongFiles,songLocks,setWorkspaceLocation} from './workspace';
-import {exportOpenLyrics} from './openlyrics';
-import JSZip from 'jszip';
 export function songHandlers(store:ReturnType<typeof openStore>,win:BrowserWindow,root:string,userData:string){
  const pending=new Map<string,{songs:ReturnType<typeof parseSongFile>;createdAt:number}>(),locks=songLocks(root),files=createSongFiles(root,store,locks);
- const persist=()=>files.persist(),sync=()=>files.sync(),withLocks=locks.withLocks;
- return {locks,files,persist,sync,withLocks,close(){pending.clear();files.close();locks.close();},handlers:{
+ const persist=(ids?:ReadonlySet<string>)=>files.persist(false,ids),sync=()=>files.sync(),withLocks=locks.withLocks;let optimizing=false;
+ const runOptimizer=(action:'preview'|'optimize',expectedCopies?:number)=>{
+  if(optimizing)throw new Error('Library optimization is already running.');optimizing=true;
+  return new Promise<unknown>((resolve,reject)=>{
+   let settled=false;let worker:Worker;
+   try{worker=new Worker(unpackedResource(path.join(__dirname,'song-optimize-worker.cjs')),{workerData:{root,action,expectedCopies}});}catch(error){optimizing=false;reject(error);return;}
+   const finish=(error?:Error,value?:unknown)=>{if(settled)return;settled=true;optimizing=false;error?reject(error):resolve(value);};
+   worker.on('message',(message:{type:string;stage?:string;value?:unknown;message?:string})=>{if(message.type==='progress'&&!win.isDestroyed())win.webContents.send('songs:optimize-progress',message.stage);else if(message.type==='result')finish(undefined,message.value);else if(message.type==='error')finish(new Error(message.message||'Optimization failed.'));});
+   worker.once('error',error=>finish(error));worker.once('exit',code=>{if(!settled)finish(new Error(`Optimization stopped unexpectedly (${code}).`));});
+  });
+ };
+ return {locks,files,persist,sync,withLocks,isOptimizing:()=>optimizing,close(){pending.clear();files.close();locks.close();},handlers:{
   'songs:lock':(_e:Electron.IpcMainInvokeEvent,v:unknown)=>locks.acquire(z.string().uuid().parse(v)),
   'songs:unlock':(_e:Electron.IpcMainInvokeEvent,v:unknown)=>locks.release(z.string().uuid().parse(v)),
   'songs:import-preview':async()=>{
@@ -27,22 +37,13 @@ export function songHandlers(store:ReturnType<typeof openStore>,win:BrowserWindo
    store.importSongs({format:'worship-studio-songs-v1',songs:indices.map(n=>candidates[n])});pending.delete(input.token);persist();return 'Imported '+indices.length+' songs.';
   },
   'songs:tools':async(_e:Electron.IpcMainInvokeEvent,v:unknown)=>{
-   const {action,payload}=z.object({action:z.enum(['rename','merge','delete','history','export','optimize']),payload:z.any()}).parse(v);
-   if(action==='history')return store.usageHistory();
-   if(action==='optimize')return store.optimizeSongs();
-   if(action==='rename'){const x=z.object({changes:z.array(z.object({id:z.string().uuid(),title:z.string().trim().min(1).max(200)})).min(1).max(10000)}).parse(payload);withLocks(x.changes.map(s=>s.id),()=>{store.bulkRenameSongs(x.changes);persist();});return 'Songs renamed.';}
-   if(action==='merge'){const x=z.object({keepId:z.string().uuid(),removeIds:z.array(z.string().uuid()).min(1).max(10000)}).parse(payload);withLocks([x.keepId,...x.removeIds],()=>{files.markDeleted(x.removeIds);store.mergeSongs(x.keepId,x.removeIds);persist();});return 'Songs merged. Existing service snapshots kept.';}
-   const x=z.object({ids:z.array(z.string().uuid()).min(1).max(10000),format:z.enum(['json','text','fields','openlyrics']).default('json')}).parse(payload);
-   if(action==='delete'){withLocks(x.ids,()=>{files.markDeleted(x.ids);store.deleteSongs(x.ids);persist();});return 'Selected songs deleted.';}
-   const songs=store.listSongs().filter(s=>x.ids.includes(s.id));if(songs.length!==new Set(x.ids).size)throw new Error('Song selection changed. Refresh and try again.');
-   const filename=x.format==='json'?'songs.json':x.format==='openlyrics'?(songs.length===1?'song.xml':'songs-openlyrics.zip'):'songs.txt';
-   const result=await dialog.showSaveDialog(win,{defaultPath:filename});if(result.canceled||!result.filePath)return 'Song export canceled.';
-   if(x.format==='openlyrics'){
-    const rendered=songs.map(exportOpenLyrics),warnings=rendered.flatMap(r=>r.warnings);
-    if(songs.length===1)await writeFile(result.filePath,rendered[0].xml,'utf8');else{const zip=new JSZip();songs.forEach((song,index)=>zip.file(`${String(index+1).padStart(4,'0')}-${song.title.replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,100)}.xml`,rendered[index].xml));await writeFile(result.filePath,await zip.generateAsync({type:'nodebuffer'}));}
-    return {exported:songs.length,warnings};
+   const {action,payload}=z.object({action:z.enum(['delete','optimize-preview','optimize']),payload:z.any()}).parse(v);
+   if(action==='optimize-preview')return runOptimizer('preview');
+   if(action==='optimize'){
+    const input=z.object({expectedCopies:z.number().int().min(0)}).strict().parse(payload);return runOptimizer('optimize',input.expectedCopies);
    }
-   await writeFile(result.filePath,exportSongs(songs,x.format),'utf8');return 'Selected songs exported.';
+   const x=z.object({ids:z.array(z.string().uuid()).min(1).max(10000)}).parse(payload);
+   if(action==='delete'){withLocks(x.ids,()=>{files.markDeleted(x.ids);store.deleteSongs(x.ids);persist();});return 'Selected songs deleted.';}
   },
   'workspace:choose':async()=>{
    const result=await dialog.showOpenDialog(win,{properties:['openDirectory','createDirectory'],title:'Choose a workspace folder (used after restarting)'});

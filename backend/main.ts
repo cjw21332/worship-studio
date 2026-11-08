@@ -5,7 +5,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
 import {openStore,type Item} from './database';
-import {initialPresentation,preview,takeLive,blackout,toggleOutput,toggleFreeze,updatePresentation,clampStageLayout,type Presentation,type Slide} from './presentation';
+import {initialPresentation,preview,takeLive,blackout,toggleOutput,toggleFreeze,updatePresentation,clampStageLayout,canAutoAdvance,type Presentation,type Slide} from './presentation';
 import {workspaceLocation} from './workspace';
 import {songHandlers} from './song-handlers';
 import {bibleHandlers} from './bible-handlers';
@@ -38,6 +38,8 @@ app.whenReady().then(async()=>{
  const workspaceRoot=workspaceLocation(app.getPath('userData'));
  await mkdir(workspaceRoot,{recursive:true});
  const store=openStore(path.join(workspaceRoot,'workspace.db'));
+ const startingLibrary=unpackedResource(path.join(__dirname,'resources','starting-library.db'));
+ if(existsSync(startingLibrary))store.seedStartingLibrary(startingLibrary);
  diagnostics=createDiagnostics({directory:path.join(workspaceRoot,'logs'),version:app.getVersion(),isPackaged:app.isPackaged,getCounters:()=>({songCount:store.listSongs().length,itemCount:store.listItems().length,assetCount:store.assets().length,blackout:state.blackout,freeze:state.freeze}),getOutputs:()=>outputs.list().outputs});
  const mediaRoot=path.join(workspaceRoot,'media'),resourcesRoot=path.join(__dirname,'resources');
  const bundledBibles=unpackedResource(path.join(resourcesRoot,'bundled-bibles.db'));
@@ -56,7 +58,7 @@ app.whenReady().then(async()=>{
  win.webContents.on('will-navigate',event=>event.preventDefault());
  win.webContents.session.setPermissionRequestHandler((_webContents,_permission,callback)=>callback(false));
  const activity=(message:string,kind:'info'|'error'='info')=>{diagnostics?.log(kind,'workspace.activity');if(!win.isDestroyed())win.webContents.send('workspace:activity',{kind,message});};
- if(!existsSync(bundledBibles))win.webContents.once('did-finish-load',()=>activity('Bundled Bible translations are missing from this installation. Import a translation using File → Import → Bible translation in Full mode.','error'));
+ if(!existsSync(bundledBibles)&&!existsSync(startingLibrary))win.webContents.once('did-finish-load',()=>activity('Bundled Bible translations are missing from this installation. Import a translation using File → Import → Bible translation in Full mode.','error'));
  let outputLocked=false,captureStyle:SlideStyle={};
  const requireOutputChange=async(reason:string)=>{
   if(!outputLocked)return;
@@ -107,11 +109,12 @@ app.whenReady().then(async()=>{
  let advanceTimer:ReturnType<typeof setTimeout>|undefined,advanceDue=0,remainingAdvance:number|undefined;
  const scheduleAdvance=(resume=false)=>{
   if(advanceTimer)clearTimeout(advanceTimer);advanceTimer=undefined;
-  if(state.freeze)return;
+  if(state.freeze||state.blackout||state.clear||state.logo)return;
   const item=store.listItems().find(i=>i.id===state.live?.itemId);if(!item||!state.live)return;
   const next=nextTimedMediaSlide(item,state.live.index||0);if(!next)return;
   const delay=resume&&remainingAdvance!==undefined?remainingAdvance:next.delay;remainingAdvance=undefined;advanceDue=Date.now()+delay;
-  advanceTimer=setTimeout(()=>{void (async()=>{if(state.freeze)return;state=preview(state,await resolveSlide(item.id,next.index));await sendLive();})().catch(error=>activity('Auto-advance stopped: '+String(error),'error'));},delay);
+  const liveIndex=state.live.index??0;
+  advanceTimer=setTimeout(()=>{void (async()=>{if(!canAutoAdvance(state,item.id,liveIndex))return;const revision=state.revision;const slide=await resolveSlide(item.id,next.index);if(!canAutoAdvance(state,item.id,liveIndex,revision))return;state=preview(state,slide);await sendLive();})().catch(error=>activity('Auto-advance stopped: '+String(error),'error'));},delay);
  };
  const setNext=async()=>{
   const live=state.live;if(!live?.itemId){state=updatePresentation(state,{next:null});return;}
@@ -141,8 +144,18 @@ app.whenReady().then(async()=>{
  };
  const songOps=songHandlers(store,win,workspaceRoot,app.getPath('userData'));
  const reportSync=(report:ReturnType<typeof songOps.sync>)=>{for(const message of [...report.conflicts,...report.errors])activity('Song sync: '+message,'error');};
- reportSync(songOps.sync());reportSync(songOps.persist());
- const syncTimer=setInterval(()=>{try{reportSync(songOps.sync());}catch(error){activity('Song sync: '+String(error),'error');}},5000);
+ // Open from SQLite first; portable file mirrors must not delay the first window.
+ let mirrorsReady=false,mirrorTimer:ReturnType<typeof setTimeout>|undefined;
+ const mirrorQueue=()=>store.listSongs().map(song=>song.id);
+ const mirrorBatch=()=>{
+  if(win.isDestroyed())return;
+  if(!songOps.isOptimizing())try{
+   if(!mirrorsReady){reportSync(songOps.sync());mirrorsReady=true;}
+   reportSync(songOps.persist(new Set(mirrorQueue().splice(0,10))));
+  }catch(error){activity('Song sync: '+String(error),'error');}
+  if(mirrorQueue().length)mirrorTimer=setTimeout(mirrorBatch,100);
+ };
+ const syncTimer=setInterval(()=>{if(!mirrorsReady||mirrorQueue().length||songOps.isOptimizing())return;try{reportSync(songOps.sync());}catch(error){activity('Song sync: '+String(error),'error');}},5000);
  const serviceOps=serviceHandlers({
   store,win,workspaceRoot,mediaRoot,
   outputStatus:()=>{const status=outputs.list(),audience=status.outputs.find(o=>o.role==='audience');return {armed:!!audience?.armed,displayFound:audience?.displayId===null?status.displays.some(d=>!d.operator):!!audience?.connected};},
@@ -267,9 +280,10 @@ app.whenReady().then(async()=>{
   'presentation:get':()=>state,
   'presentation:preview-font-size':async(_event,value)=>{const size=z.number().finite().min(8).max(400).parse(value);if(!state.preview)throw new Error('Choose a slide to preview first.');const current=state.preview;state=updatePresentation(state,{preview:{...current,style:{...current.style,minFontSize:Math.min(current.style?.minFontSize??20,size),maxFontSize:size}}});await render();return state;},
   'presentation:preview':async(_e,value)=>{
-   const slide=z.object({title:z.string().max(200),text:z.string().max(100000),itemId:z.string().uuid().optional(),index:z.number().int().min(0).optional()}).strict().parse(value);
-   const theme=themes.resolveStyle({kind:'text'});state=preview(state,slide.itemId?await resolveSlide(slide.itemId,slide.index??0):{...slide,style:{...theme.style,...captureStyle},transition:theme.transition});return state;
-  },
+  const slide=z.object({title:z.string().max(200),text:z.string().max(100000),itemId:z.string().uuid().optional(),index:z.number().int().min(0).optional()}).strict().nullable().parse(value);
+  if(slide===null){state=updatePresentation(state,{preview:null});return state;}
+  const theme=themes.resolveStyle({kind:'text'});state=preview(state,slide.itemId?await resolveSlide(slide.itemId,slide.index??0):{...slide,style:{...theme.style,...captureStyle},transition:theme.transition});return state;
+},
   'presentation:navigate':async(_event,value)=>{
    const {direction}=z.object({direction:z.union([z.literal(-1),z.literal(1)])}).strict().parse(value);
    const items=store.listItems();let item=items.find(i=>i.id===(state.live?.itemId||state.preview?.itemId))||items[0];if(!item)throw new Error('Add content to the service first.');
@@ -290,6 +304,7 @@ app.whenReady().then(async()=>{
  };
  for(const [channel,handler] of Object.entries(handlers))ipcMain.handle(channel,async(event,value)=>{
   if(event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame)throw new Error('Unauthorized sender.');
+  if(songOps.isOptimizing()&&(channel.startsWith('songs:')||channel==='workspace:choose'))throw new Error('Wait for library optimization to finish.');
   const action=value&&typeof value==='object'&&'action'in value?String(value.action):'';
   const changesService=['service:new','service:duplicate','service:reorder','service:add','service:remove','service:text','media:add','media:import','songs:quick-edit'].includes(channel)
    ||channel==='service:action'&&['new','item','open','recent','template-open','template-sunday','recover'].includes(action)
@@ -306,5 +321,7 @@ app.whenReady().then(async()=>{
  if(!app.isPackaged&&process.env.VITE_DEV_SERVER_URL)await win.loadURL(process.env.VITE_DEV_SERVER_URL);
  else await win.loadFile(path.join(__dirname,'../dist/index.html'));
  diagnostics.measure('startup',performance.now()-startup);
- win.on('closed',()=>{void (async()=>{clearInterval(syncTimer);songOps.close();if(advanceTimer)clearTimeout(advanceTimer);mediaOps.close();outputs.close();await extras.close();await serviceOps.close();store.close();diagnostics?.close();app.quit();})().catch(error=>{diagnostics?.error('shutdown.failed',error);app.quit();});});
+ mirrorTimer=setTimeout(mirrorBatch,1500);
+ win.on('close',event=>{if(songOps.isOptimizing()){event.preventDefault();activity('Wait for library optimization to finish before closing.','error');}});
+ win.on('closed',()=>{void (async()=>{clearInterval(syncTimer);if(mirrorTimer)clearTimeout(mirrorTimer);songOps.close();if(advanceTimer)clearTimeout(advanceTimer);mediaOps.close();outputs.close();await extras.close();await serviceOps.close();store.close();diagnostics?.close();app.quit();})().catch(error=>{diagnostics?.error('shutdown.failed',error);app.quit();});});
 }).catch(error=>{diagnostics?.error('startup.failed',error);console.error('Worship Studio startup failed:',error instanceof Error?error.name:'Error');dialog.showErrorBox('Worship Studio could not start','The workspace could not be opened. Check that its folder is available and writable, then restart. Your saved files have been kept.');app.quit();});

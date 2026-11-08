@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import {readFile,mkdir,writeFile,rename,lstat,realpath} from 'node:fs/promises';
+import {readFile,mkdir,writeFile,link,unlink,lstat,realpath} from 'node:fs/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import path from 'node:path';
 import {z} from 'zod';
@@ -35,6 +35,7 @@ export async function unpackService(buffer:Buffer,mediaRoot:string):Promise<{ser
  const rawManifest=await manifestEntry.async('string');if(rawManifest.length>5_000_000)throw new Error('Package manifest is too large.');
  const manifest=z.object({format:z.literal('worship-studio-package-v1'),assets:z.array(Asset).max(5000)}).parse(JSON.parse(rawManifest));
  if(new Set(manifest.assets.map(a=>a.id)).size!==manifest.assets.length)throw new Error('Package contains duplicate assets.');
+ if(new Set(manifest.assets.map(a=>a.name.toLowerCase())).size!==manifest.assets.length)throw new Error('Package contains duplicate media filenames.');
  const source=await serviceEntry.async('string');if(source.length>30_000_000)throw new Error('Service exceeds 30 MB.');
  const service=parseService(JSON.parse(source));
  const records=manifest.assets;
@@ -43,6 +44,10 @@ export async function unpackService(buffer:Buffer,mediaRoot:string):Promise<{ser
  for(const asset of records){const entry=zip.file('media/'+asset.name);if(!entry)throw new Error('Package is missing '+asset.title+'.');const data=await entry.async('nodebuffer');if(createHash('sha256').update(data).digest('hex')!==asset.sha256)throw new Error('Media checksum mismatch.');approved.set(asset.name,data);}
  await mkdir(mediaRoot,{recursive:true});
  const destinationRoot=await realpath(mediaRoot);
- for(const [name,data]of approved){const dest=path.join(destinationRoot,name);try{const info=await lstat(dest);if(!info.isFile()||info.isSymbolicLink())throw new Error('Media destination must be a regular file.');const actual=await realpath(dest);if(path.dirname(actual)!==destinationRoot)throw new Error('Media destination escaped the workspace.');const existing=await readFile(dest);if(!existing.equals(data))throw new Error('An asset with the same ID has different content.');}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;const temporary=dest+'.'+randomUUID()+'.tmp';await writeFile(temporary,data,{flag:'wx'});await rename(temporary,dest);}}
+ // Check every destination before writing anything: a later conflict must not
+ // leave earlier media imported from a service that could not be opened.
+ const missing:[string,Buffer][]=[];
+ for(const [name,data]of approved){const dest=path.join(destinationRoot,name);try{const info=await lstat(dest);if(!info.isFile()||info.isSymbolicLink())throw new Error('Media destination must be a regular file.');const actual=await realpath(dest);if(path.dirname(actual)!==destinationRoot)throw new Error('Media destination escaped the workspace.');const existing=await readFile(dest);if(!existing.equals(data))throw new Error('An asset with the same ID has different content.');}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;missing.push([dest,data]);}}
+ for(const [dest,data]of missing){const temporary=dest+'.'+randomUUID()+'.tmp';await writeFile(temporary,data,{flag:'wx'});try{await link(temporary,dest);}finally{await unlink(temporary);}}
  return {service,assets:records};
 }

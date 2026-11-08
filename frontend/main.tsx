@@ -59,9 +59,9 @@ function App(){
  const notify=useCallback((text:string,kind:Notice['kind']='success',action?:()=>void)=>{const n={id:Date.now()+Math.random(),text,kind,time:new Date().toLocaleTimeString(),action};setNotices(v=>[...v.slice(-3),n]);setLog(v=>[n,...v].slice(0,200));const timer=setTimeout(()=>{setNotices(v=>v.filter(x=>x.id!==n.id));timers.current=timers.current.filter(t=>t!==timer);},action?10000:4000);timers.current.push(timer);},[]);
  useEffect(()=>window.studio.onPresentation(next=>setPresentation(current=>acceptSnapshot(current,next))),[]);
  useEffect(()=>window.studio.onActivity(value=>notify(value.message,value.kind)),[notify]);
- const refresh=useCallback(async()=>{const [s,i,p,a,t]=await Promise.all([window.studio.songs(),window.studio.service(),window.studio.presentation(),window.studio.media(),window.studio.translations()]);const fingerprint=JSON.stringify(i);if(fingerprint!==serviceFingerprint.current){serviceRevision.current++;serviceFingerprint.current=fingerprint;}setServiceStatus(await window.studio.serviceTools('initial',{}));setSongs(s);setItems(i);setPresentation(current=>acceptSnapshot(current,p));setAssets(a);setTranslations(t);},[]);
- const act=async(fn:()=>Promise<unknown>,message?:string)=>{pendingActions.current++;setBusy(true);try{const result=await fn();await refresh();if(typeof result==='string')notify(result==='Canceled'?(message?message+' canceled.':'File selection canceled.'):result,result==='Canceled'?'info':'success');else if(message)notify(message);if(result&&typeof result==='object'){const feedback=result as {message?:string;warning?:string};if(feedback.message&&!message)notify(tr(feedback.message));if(feedback.warning)notify(tr(feedback.warning),'info');}return result;}catch(error){notify(error instanceof Error?error.message:String(error),'error');return null;}finally{pendingActions.current--;setBusy(pendingActions.current>0);}};
- useEffect(()=>{void refresh().catch(e=>notify(String(e),'error'));void window.studio.info().then(setInfo).catch(e=>notify(String(e),'error'));return()=>{timers.current.forEach(clearTimeout);deleteQueue.current.close();};},[refresh,notify]);
+ const refresh=useCallback(async(library=true)=>{const [s,i,p,a,t]=await Promise.all([library?window.studio.songs():null,window.studio.service(),window.studio.presentation(),library?window.studio.media():null,library?window.studio.translations():null]);const fingerprint=JSON.stringify(i);if(fingerprint!==serviceFingerprint.current){serviceRevision.current++;serviceFingerprint.current=fingerprint;}setServiceStatus(await window.studio.serviceTools('initial',{}));if(s)setSongs(s);setItems(i);setPresentation(current=>acceptSnapshot(current,p));if(a)setAssets(a);if(t)setTranslations(t);},[]);
+ const act=async(fn:()=>Promise<unknown>,message?:string,library=true)=>{pendingActions.current++;setBusy(true);try{const result=await fn();await refresh(library);if(typeof result==='string')notify(result==='Canceled'?(message?message+' canceled.':'File selection canceled.'):result,result==='Canceled'?'info':'success');else if(message)notify(message);if(result&&typeof result==='object'){const feedback=result as {message?:string;warning?:string};if(feedback.message&&!message)notify(tr(feedback.message));if(feedback.warning)notify(tr(feedback.warning),'info');}return result;}catch(error){notify(error instanceof Error?error.message:String(error),'error');return null;}finally{pendingActions.current--;setBusy(pendingActions.current>0);}};
+ useEffect(()=>{void refresh(false).catch(e=>notify(String(e),'error'));const libraryTimer=setTimeout(()=>void refresh().catch(e=>notify(String(e),'error')),250);void window.studio.info().then(setInfo).catch(e=>notify(String(e),'error'));return()=>{clearTimeout(libraryTimer);timers.current.forEach(clearTimeout);deleteQueue.current.close();};},[refresh,notify]);
  const saveAccess=async(next:typeof extrasSettings)=>{const result=await window.studio.extras('save',next);setExtrasSettings(result.settings);notify(tr('Accessibility settings saved.'));return result;};
  useEffect(()=>{const check=()=>window.studio.outputs('list',{}).then(value=>{setOutputs(previous=>JSON.stringify(previous)===JSON.stringify(value)?previous:value);}).catch(e=>notify(String(e),'error'));void check();const timer=setInterval(check,1500);return()=>clearInterval(timer);},[notify]);
  useEffect(()=>{if(simple&&tab==='Slides')setTab('Songs');},[simple]);
@@ -70,7 +70,7 @@ function App(){
  const transfer=async(action:string)=>act(()=>window.studio.transfer(action));
  const showSong=async(song?:Song)=>{try{if(song)await window.studio.songLock(song.id);setEditing(song?.id||null);setModal('song');}catch(e){notify(String(e),'error');}};
  const closeSong=()=>{if(editing)void window.studio.songUnlock(editing);setEditing(null);setModal(null);};
- const previewSlide=async(i:Item,n:number,live=false)=>{await act(async()=>{await window.studio.preview({title:i.title,text:i.slides[n],itemId:i.id,index:n});if(live)await window.studio.takeLive();});};
+ const previewSlide=async(i:Item,n:number,live=false)=>{if(pendingActions.current>0||n<0||n>=i.slides.length)return;await act(async()=>{const current=(await window.studio.service()).find(item=>item.id===i.id);if(!current||n>=current.slides.length){setSelected(value=>value===i.id?null:value);return;}await window.studio.preview({title:current.title,text:current.slides[n],itemId:current.id,index:n});if(live)await window.studio.takeLive();},undefined,false);};
  const navigate=(direction:number)=>{const current=items.find(i=>i.id===(presentation.preview?.itemId||selected));if(!current)return;const index=presentation.preview?.itemId===current.id?(presentation.preview.index??0):-1;const next=Math.max(0,Math.min(current.slides.length-1,index+direction));void previewSlide(current,next);};
  const move=(id:string,direction:number)=>{if(extrasSettings.operatorV2.mode==='present'){notify(tr('Switch to Prepare mode to edit.'),'info');return;}const ids=items.map(i=>i.id),at=ids.indexOf(id),to=at+direction;if(to<0||to>=ids.length)return;[ids[at],ids[to]]=[ids[to],ids[at]];void act(()=>window.studio.reorder(ids),deskT(extrasSettings.language,'Moved to position {position} of {total}',{position:to+1,total:ids.length}));};
  const toggle=(mode:'blackout'|'clear'|'logo')=>void act(()=>window.studio.toggle(mode));
@@ -78,7 +78,7 @@ function App(){
  const runService=async(action:string,payload:any={})=>{if(!modeAllows(extrasSettings.operatorV2.mode,action)){notify(tr('Switch to Prepare mode to edit.'),'info');return null;}if(action==='item'&&payload.id===presentation.live?.itemId&&!window.confirm(tr('Change this live item?')))return Promise.resolve(null);const result=await act(()=>window.studio.serviceTools(action,payload));if(['new','open','recent','template-open','template-sunday','recover'].includes(action)&&result!==null&&!String(result).toLowerCase().includes('canceled')){await updateUI({mode:'prepare'});setSelected(null);}return result;};
  const deleteSongWithUndo=(id:string)=>{if(pendingDeletes.has(id))return;if(items.some(i=>i.sourceId===id&&i.id===presentation.live?.itemId)&&!window.confirm(tr('Change this live item?')))return;setPendingDeletes(v=>new Set([...v,id]));const clear=()=>setPendingDeletes(v=>{const next=new Set(v);next.delete(id);return next;});const cancel=deleteQueue.current.defer(id,()=>{void act(()=>window.studio.deleteSong(id)).finally(clear);});notify(tr('Song deleted.'),'info',()=>{cancel();clear();});};
  const deleteDocumentWithUndo=(id:string)=>{if(pendingDocuments.has(id))return;if(items.some(i=>i.sourceId===id&&i.id===presentation.live?.itemId)&&!window.confirm(tr('Change this live item?')))return;setPendingDocuments(v=>new Set([...v,id]));const clear=()=>setPendingDocuments(v=>{const next=new Set(v);next.delete(id);return next;});const cancel=deleteQueue.current.defer('document:'+id,()=>{void act(()=>window.studio.mediaTools('document-delete',{id})).finally(clear);});notify(tr('Library item deleted.'),'info',()=>{cancel();clear();});};
- const runSongTools=(action:string,payload:unknown)=>{if(action==='delete'){const ids=(payload as {ids:string[]}).ids;ids.forEach(deleteSongWithUndo);setModal(null);return Promise.resolve(true);}if(action==='merge'){const value=payload as {keepId:string;removeIds:string[]};if(items.some(i=>i.id===presentation.live?.itemId&&[value.keepId,...value.removeIds].includes(i.sourceId||''))&&!window.confirm(tr('Change this live item?')))return Promise.resolve(null);const cancel=deleteQueue.current.defer('merge:'+value.keepId,()=>{void act(()=>window.studio.songTools(action,payload));});setModal(null);notify(tr('Changes scheduled.'),'info',cancel);return Promise.resolve(true);}return act(()=>window.studio.songTools(action,payload));};
+ const runSongTools=(action:string,payload:unknown)=>{if(action==='delete'){const ids=(payload as {ids:string[]}).ids;ids.forEach(deleteSongWithUndo);setModal(null);return Promise.resolve(true);}return act(()=>window.studio.songTools(action,payload));};
  const removeWithUndo=(i:Item)=>{if(presentation.live?.itemId===i.id&&!window.confirm(tr('Change this live item?')))return;void act(async()=>{await window.studio.removeItem(i.id);if(selected===i.id)setSelected(null);}).then(async()=>{if((await window.studio.service()).some(item=>item.id===i.id))return;const revision=serviceRevision.current;notify(tr('Item removed.'),'info',()=>{if(serviceRevision.current!==revision){notify(tr('Undo the later service changes first.'),'info');return;}void act(()=>window.studio.serviceTools('undo'),tr('Item restored.'));});});};
  const dropIntoService=(event:React.DragEvent)=>{
   event.preventDefault();if(busy)return;if(extrasSettings.operatorV2.mode==='present'){notify(tr('Switch to Prepare mode to edit.'),'info');return;}const files=Array.from(event.dataTransfer.files);
@@ -111,13 +111,13 @@ function App(){
   if(id==='go-live')return act(()=>window.studio.takeLive(),tr(presentation.freeze?'Prepared for when output is unfrozen.':'Preview sent live.'));if(id==='freeze')return act(()=>window.studio.freeze());if(id==='emergency-blackout')return act(()=>window.studio.blackout());if(id.startsWith('toggle-'))return toggle(id.slice(7) as 'blackout'|'clear'|'logo');
   if(id==='quick-edit'){setModal('quick');return;}if(id==='shortcuts'){setModal('help');return;}if(id==='welcome'){setOnboarding(true);return;}if(id==='diagnostics'){setModal('reliability');return;}if(id==='backup-settings')return act(()=>window.studio.extras('backup'));if(id==='copy-path'){await window.studio.copyWorkspacePath();notify(tr('Workspace path copied.'));return;}if(id==='exit'){window.close();return;}setModal(id);
  };
- const controller:DeskController={songs,items,state:presentation,shownSlide,view:liveView,outputs,settings:extrasSettings,service:serviceStatus,info,tab,query,selected,busy,pendingDeletes,pendingDocuments,searchRef,setTab,setQuery:value=>setQueries({...queries,[tab]:value}),setModal,command,updateUI,saveSettings:saveAccess,refresh,notify,act,onSelect:i=>{setSelected(i.id);void previewSlide(i,0);},onPreview:(i,n,live)=>void previewSlide(i,n,live),onNavigate:navigate,onMove:move,onReorder:ids=>{if(extrasSettings.operatorV2.mode==='prepare')void act(()=>window.studio.reorder(ids));},onOptions:(i,field)=>{if(extrasSettings.operatorV2.mode==='present')return;setItemField(field==='notes'?'notes':field==='colorTag'?'colorTag':'title');openItemOptions(i);},onDuplicate:i=>{if(extrasSettings.operatorV2.mode==='prepare')void act(()=>window.studio.duplicateItem(i.id));},onRemove:i=>{if(extrasSettings.operatorV2.mode==='prepare')removeWithUndo(i);},onDeleteSong:deleteSongWithUndo,onDeleteDocument:deleteDocumentWithUndo,onEditSong:song=>void showSong(song),onDrop:dropIntoService};
+ const controller:DeskController={songs,items,state:presentation,shownSlide,view:liveView,outputs,settings:extrasSettings,service:serviceStatus,info,tab,query,selected,busy,pendingDeletes,pendingDocuments,searchRef,setTab,setQuery:value=>setQueries({...queries,[tab]:value}),setModal,command,updateUI,saveSettings:saveAccess,refresh,notify,act,onSelect:i=>{if(pendingActions.current>0)return;if(selected===i.id&&extrasSettings.operatorV2.mode==='prepare'){setSelected(null);void act(()=>window.studio.preview(null),undefined,false);}else{setSelected(i.id);void previewSlide(i,0);}},onPreview:(i,n,live)=>void previewSlide(i,n,live),onNavigate:navigate,onMove:move,onReorder:ids=>{if(extrasSettings.operatorV2.mode==='prepare')void act(()=>window.studio.reorder(ids));},onOptions:(i,field)=>{if(extrasSettings.operatorV2.mode==='present')return;setItemField(field==='notes'?'notes':field==='colorTag'?'colorTag':'title');openItemOptions(i);},onDuplicate:i=>{if(extrasSettings.operatorV2.mode==='prepare')void act(()=>window.studio.duplicateItem(i.id));},onRemove:i=>{if(extrasSettings.operatorV2.mode==='prepare')removeWithUndo(i);},onDeleteSong:deleteSongWithUndo,onDeleteDocument:deleteDocumentWithUndo,onEditSong:song=>void showSong(song),onDrop:dropIntoService};
  const overlays=<>
  <DeskTooltip language={extrasSettings.language}/>
  <Toasts notices={notices} dismiss={id=>setNotices(v=>v.filter(n=>n.id!==id))}/>
  {modal==='song'&&<SongEditor song={songs.find(s=>s.id===editing)||null} songs={songs} workspaceLanguage={extrasSettings.language} onClose={closeSong} onOpenExisting={song=>{closeSong();void showSong(song);}} busy={busy} onSave={(input,add)=>act(async()=>{const id=editing||await window.studio.createSong(input);if(editing)await window.studio.updateSong(editing,input);if(add)await window.studio.addSong(id,input.linesPerSlide||Number(localStorage.getItem('studio-max-lines')||4));closeSong();},'Song saved.')}/>}
  {modal==='quick'&&<SongEditor quick song={(()=>{const i=items.find(i=>i.id===presentation.live?.itemId);return i?.songSnapshot?{...i.songSnapshot,id:i.sourceId||i.id,usageCount:0,lastUsed:null}:null;})()} onClose={()=>setModal(null)} busy={busy} onSave={input=>act(async()=>{if(presentation.live?.itemId)await window.studio.quickEdit(presentation.live.itemId,input,Number(localStorage.getItem('studio-max-lines')||4));setModal(null);},'QuickEdit applied to live output.')}/>}
- {modal==='database'&&<DatabaseManager songs={songs.filter(s=>!pendingDeletes.has(s.id))} onClose={()=>setModal(null)} run={runSongTools}/>}
+ {modal==='database'&&<DatabaseManager songs={songs.filter(s=>!pendingDeletes.has(s.id))} onClose={()=>setModal(null)} onAdd={()=>void showSong()} onEdit={song=>void showSong(song)} run={runSongTools}/>}
  {modal==='import'&&<SongImport onClose={()=>setModal(null)} onError={message=>notify(message,'error')} onComplete={(token,indices)=>act(async()=>{const result=await window.studio.songImportCommit(token,indices);setModal(null);return result;})}/>}
  {(modal==='note'||modal==='slide')&&<Modal title={modal==='note'?'Create note':'Create text slides'} onClose={()=>setModal(null)}><label>{tr("Title")}<input data-help-id="main.undefined" autoFocus value={title} onChange={e=>setTitle(e.target.value)}/></label><label>{tr("Text")}<textarea data-help-id="main.undefined2" rows={10} value={lyrics} onChange={e=>setLyrics(e.target.value)}/></label><div className="dialog-actions"><button data-help-id="main.cancel" onClick={()=>setModal(null)}>{tr("Cancel")}</button><button data-help-id="main.addToService" className="primary" disabled={busy||!title.trim()||!lyrics.trim()} onClick={()=>void act(async()=>{const result=await window.studio.mediaTools('document-save',{title,kind:modal==='note'?'note':'slides',text:lyrics});await window.studio.mediaTools('document-add',{id:result.documentId});setModal(null);},'Text added to service.')}>{tr("Add to service")}</button></div></Modal>}
  {modal==='extras'&&<ExtrasSettings onClose={()=>setModal(null)} onChanged={setExtrasSettings}/>}
@@ -130,13 +130,129 @@ function App(){
  {modal==='accessibility'&&<AccessibilitySettings settings={extrasSettings} onClose={()=>setModal(null)} onSave={saveAccess} onReset={()=>void command('reset-panes')}/>}
  {modal==='settings'&&<SettingsV2 c={controller} onClose={()=>setModal(null)}/>}
  {modal==='text-styles'&&<TextStyles initialKind={textStyleKind} onClose={()=>setModal(null)} onApply={refresh}/>}
- {modal==='help'&&<Modal title={tr("Help and shortcuts")} onClose={()=>setModal(null)}><p className="hint">{tr("Prepare in the library, select a slide, then send it live. Typing in an editor never triggers output shortcuts.")}</p><p>{tr('Song details text uses Title, Authors, Publisher, Copyright, Comments, Key and Tempo headers, a blank line, then the lyrics. Use Song database to export it.')}</p>{resolvedShortcuts(extrasSettings.clicker).map(([keys,action])=><div className="shortcut-row" key={action}><span>{tr(action)}</span><kbd>{keys}</kbd></div>)}</Modal>}
+ {modal==='help'&&<Modal title={tr("Help and shortcuts")} onClose={()=>setModal(null)}><p className="hint">{tr("Prepare in the library, select a slide, then send it live. Typing in an editor never triggers output shortcuts.")}</p><p>{tr('Song details text uses Title, Authors, Publisher, Copyright, Comments, Key and Tempo headers, a blank line, then the lyrics. Use File → Export → Songs to export songs.')}</p>{resolvedShortcuts(extrasSettings.clicker).map(([keys,action])=><div className="shortcut-row" key={action}><span>{tr(action)}</span><kbd>{keys}</kbd></div>)}</Modal>}
  {modal==='quick-bible'&&<BiblePanel quick query={queries.Bible||''} onQuery={q=>setQueries({...queries,Bible:q})} onClose={()=>setModal(null)} refresh={refresh} notify={notify}/>}
  {modal==='bible-settings'&&<BiblePanel settingsOnly query={queries.Bible||''} onQuery={q=>setQueries({...queries,Bible:q})} onClose={()=>setModal(null)} refresh={refresh} notify={notify}/>}
  {modal==='bible-import'&&<BibleImport onClose={()=>setModal(null)} onComplete={async()=>{await refresh();setModal(null);notify('Bible translation imported.');}} onError={message=>notify(message,'error')}/>}
- {modal==='activity'&&<Modal title={tr("Activity log")} onClose={()=>setModal(null)}>{log.length?log.map(n=><div className="log-row" key={n.id}><time>{n.time}</time>{n.text}</div>):<p className="hint">{tr("Actions and messages from this session will appear here.")}</p>}</Modal>}
+ {modal==='activity' && (
+  <Modal title={tr("Activity log")} onClose={()=>setModal(null)} style={{padding: '24px'}}>
+    {log.length ? (
+      <div className="activity-log" style={{
+        maxHeight: '400px',
+        overflowY: 'auto',
+        padding: '16px',
+        background: 'var(--panel)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius)',
+        fontSize: '13px',
+        lineHeight: '1.55',
+      }}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '12px', color: 'var(--muted)'}}>
+          <span>{tr("Session activity")}</span>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button
+              data-help-id="activity.exportLogs"
+              onClick={() => {
+                const blob = new Blob([log.map(n=>n.time+' | '+n.text+'\n').join('')], {type: 'text/plain'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'worship-studio-activity-logs.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              style={{
+                padding: '6px 12px',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius)',
+                background: 'var(--panel)',
+                color: 'var(--ink)',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}>
+              {tr("Export")}
+            </button>
+            <button
+              data-help-id="activity.clearLogs"
+              onClick={() => {
+                if (window.confirm('Clear all activity logs?')) {
+                  setLog([]);
+                  notify('Activity logs cleared.', 'info');
+                }
+              }}
+              style={{
+                padding: '6px 12px',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius)',
+                background: 'var(--warning-bg)',
+                color: 'var(--warning)',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}>
+              {tr("Clear")}
+            </button>
+          </div>
+        </div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+          {log.map((n, i) => (
+            <div
+              key={n.id}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                padding: '6px 0',
+                borderBottom: '1px solid var(--subtle)',
+                ...i === log.length - 1 && {borderBottom: 'none', paddingBottom: '6px'},
+              }}
+            >
+              <time
+                style={{
+                  color: 'var(--muted)',
+                  fontSize: '11px',
+                  whiteSpace: 'nowrap',
+                  minWidth: '100px',
+                }}
+              >
+                {n.time}
+              </time>
+              <span
+                style={{
+                  flex: '1',
+                  wordBreak: 'break-word',
+                  fontSize: '13px',
+                }}
+              >
+                {n.text}
+              </span>
+            </div>
+          ))}
+          {log.length === 0 && (
+            <p
+              style={{
+                padding: '8px 12px',
+                color: 'var(--muted)',
+                fontSize: '13px',
+              }}>
+              {tr("Actions and messages from this session will appear here.")}
+            </p>
+          )}
+        </div>
+      </div>
+    ) : (
+      <p
+        style={{
+          padding: '8px 12px',
+          color: 'var(--muted)',
+          fontSize: '13px',
+        }}>
+        {tr("Actions and messages from this session will appear here.")}
+      </p>
+    )}
+  </Modal>
+)}
  {onboarding&&<Tutorial onClose={()=>{setOnboarding(false);localStorage.setItem('studio-onboarded','1');}}/>}
- {modal==='about'&&<Modal title={tr('About')} onClose={()=>setModal(null)}><p>Worship Studio · {tr('Version')} {info.version}</p><p className="ws-path">{info.path}</p><button data-help-id="main.copyWorkspacePath" onClick={()=>void command('copy-path')}>{tr('Copy workspace path')}</button></Modal>}
+ {modal==='about'&&<Modal title={tr('About')} onClose={()=>setModal(null)}><div className="space-y-6"><div className="text-center space-y-2"><h2 className="text-2xl font-bold text-gray-800">Worship Studio</h2><p className="text-lg text-gray-600">Version {info.version}</p></div><div className="border-t border-gray-200 pt-4 space-y-3"><p className="text-gray-700">Officially created by Charles James 'CJ' Walet</p><div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"><p className="text-sm text-gray-600 font-mono truncate max-w-xs" title={info.path}>{info.path}</p><button data-help-id="main.copyWorkspacePath" onClick={()=>void command('copy-path')} className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors">Copy workspace path</button></div></div></div></Modal>}
  {modal==='preflight'&&<Modal title={tr('Pre-flight check')} onClose={()=>setModal(null)}>{preflightIssues.length?preflightIssues.map((issue,index)=><p key={index}>{issue.message}</p>):<p>{tr('No issues found.')}</p>}</Modal>}
  </>;
  return <><DeskV2 c={controller}/>{overlays}</>;

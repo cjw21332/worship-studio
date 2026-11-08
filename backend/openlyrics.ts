@@ -4,7 +4,7 @@ const xml=(value:string)=>value.replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 /** OpenLyrics 0.8 is used for broad interoperability; unsupported chords are reported. */
 export function exportOpenLyrics(song:SongContent){
  const warnings:string[]=[],names=new Map<string,string>(),counts:Record<string,number>={};
- const prefixes:Record<string,string>={verse:'v',chorus:'c',bridge:'b',prechorus:'p',tag:'t',intro:'i',outro:'o'};
+ const prefixes:Record<string,string>={verse:'v',chorus:'c',bridge:'b',prechorus:'p',tag:'t',intro:'i',outro:'o',end:'e'};
  for(const section of song.sections){const prefix=prefixes[section.type]||'v',number=section.label.match(/\s+(\d+)$/)?.[1]||'';counts[prefix]=(counts[prefix]||0)+1;let name=prefix+number;if([...names.values()].includes(name))name=prefix+counts[prefix];while([...names.values()].includes(name))name=prefix+(++counts[prefix]);names.set(section.id,name);}
  const canonical=song.sections.map(section=>{const name=names.get(section.id)!,number=name.slice(1),label=section.type[0].toUpperCase()+section.type.slice(1)+(number?' '+number:'');return label+'\n'+section.lines.join('\n');}).join('\n\n');
  if(song.lyrics!==canonical||song.sections.some(section=>section.lines.some(line=>!line.trim())))warnings.push('Some section labels or lyric formatting may change on import.');

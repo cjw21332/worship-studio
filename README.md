@@ -35,7 +35,7 @@ Core preparation and presentation work locally without an account or an internet
 - Present translations in single, parallel, stacked, or line-by-line layouts, with reference and translation information.
 - Configure translation-specific fonts and manage recent or favorite passages.
 
-**Bible texts are not included in this repository or the current 2.0.0 distribution.** Import a translation you have permission to use. Supported import paths include Zefania, OpenSong, and OSIS XML, tab-separated data, and Worship Studio Bible JSON. Imported translations remain available offline.
+Installers built with the optional local starting library initialize its songs and Bible translations on first launch. You can also import translations in Zefania, OpenSong, OSIS XML, tab-separated data, and Worship Studio Bible JSON. Imported translations remain available offline. Distribution of supplied content requires the appropriate rights.
 
 ### Service planning
 
@@ -138,7 +138,7 @@ Open **Help → Welcome guide** or **Help → Keyboard shortcuts** for the avail
 | --- | --- |
 | PowerPoint conversion | Microsoft PowerPoint, or LibreOffice together with `pdftoppm`, enables rendered-slide import. Simplified PPTX import extracts text/images and may omit original layout, animation, or embedded media. Exporting to PNG is another option. |
 | Video conversion | FFmpeg is needed for local transcoding. Playback support depends on the file's codecs; test imported media before presenting. |
-| Bible content | No bundled translations are supplied in this source snapshot. Import authorized local translations. |
+| Bible content | A starting library can be supplied at build time; otherwise import authorized local translations. |
 | Online services | No official CCLI/SongSelect integration, Google Slides integration, or native NDI transmitter is included. |
 | Updates | Update checks need an explicitly configured compatible HTTPS feed. Downloading a GitHub Release does not configure automatic updates. |
 | Platform validation | Clean installation on a different PC, real projector/hot-plug behavior, screen-reader review, and extended-duration operation still need testing on the target equipment. |
@@ -159,7 +159,7 @@ npm start
 
 For a build followed by launch, use `npm run dev`. This command builds before launching; it is not a separate hot-reload development server. Dependency installation and first-time packaging-tool downloads require internet access.
 
-The build may report `Optional resource missing: resources/bundled-bibles.db`. That is expected for this repository; use the application's translation import workflow. RTK is an optional local command-output helper, not a requirement for other contributors.
+The starting library database is a local build resource and is not tracked in Git. Generate it with `npx tsx scripts/build-starting-library.ts <songs-folder> <bibles-folder>` before building an installer. Review import errors and obtain redistribution rights for included content. Builds without this resource require manual imports. RTK is an optional local command-output helper, not a requirement for other contributors.
 
 ### Available checks
 
@@ -174,7 +174,7 @@ node scripts/text-styles-check.cjs
 
 Desktop checks launch Electron with temporary user-data folders. They require an interactive Windows session. The text-style check writes a screenshot under `release/`.
 
-See [VALIDATION.md](VALIDATION.md) for the checks actually performed and their limits. Some legacy npm script entries reference harnesses not present in this snapshot; use the direct commands above rather than assuming those older suites are available.
+See [VALIDATION.md](VALIDATION.md) for the checks actually performed, their limits, and the Windows release acceptance checklist. Legacy harnesses absent from this snapshot are not advertised as available npm scripts.
 
 ### Build a Windows installer
 
@@ -213,6 +213,6 @@ For proposed changes, describe the affected workflow and the checks you ran. Kee
 
 Worship Studio was created by **Charles James Walet** ([cjw21332](https://github.com/cjw21332)).
 
-The project currently declares **`UNLICENSED`** in `package.json`; no open-source license grant is included. Public source availability does not itself grant permission to redistribute or relicense the project. Contact the creator about permissions before doing so.
+Worship Studio is licensed under the [MIT License](LICENSE).
 
 Third-party components retain their own licenses. See the [Lucide artwork notice](packaging/user-files/Third-party%20notices.txt) and [Inter font license](public/fonts/Inter-OFL.txt). Imported lyrics, scripture, images, video, and presentation files remain subject to their owners' rights. Worship Studio is an independent project and is not an official product of FreeWorship, CCLI, or Microsoft.

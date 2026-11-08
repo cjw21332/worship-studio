@@ -59,6 +59,12 @@ const blankReport=():SyncReport=>({imported:0,written:0,deleted:0,conflicts:[],e
 const canonical=(song:Song|({id:string}&SongContent))=>{const normalized=normalizeSong(song);return {id:UUID.parse(song.id).toLowerCase(),...normalized};};
 type CanonicalSong=ReturnType<typeof canonical>;
 const fingerprint=(song:CanonicalSong)=>createHash('sha256').update(JSON.stringify(song)).digest('hex');
+// Import/migration timestamps are bookkeeping, not competing lyric edits.
+const sameContent=(a:CanonicalSong,b:CanonicalSong)=>{
+ const {createdAt:ac,updatedAt:au,...left}=a;
+ const {createdAt:bc,updatedAt:bu,...right}=b;
+ return JSON.stringify(left)===JSON.stringify(right);
+};
 const Tombstone=z.object({id:UUID,deletedAt:z.string().datetime({offset:true}),baseHash:z.string().regex(/^[a-f0-9]{64}$/)});
 type Tombstone=z.infer<typeof Tombstone>;
 const MAX_FILE_BYTES=5_000_000;
@@ -75,15 +81,104 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
  const root=path.join(directory,'songs'),tombstones=path.join(root,'tombstones'),conflicts=path.join(root,'conflicts'),deleted=path.join(root,'deleted');
  for(const folder of [root,tombstones,conflicts,deleted])mkdirSync(folder,{recursive:true});
  const baseline=new Map<string,string>(),pendingDeletion=new Map<string,CanonicalSong>();let closed=false;
+ const reportedConflicts=new Map<string,string>();
  const fileFor=(id:string)=>path.join(root,UUID.parse(id).toLowerCase()+'.json');
  const tombFor=(id:string)=>path.join(tombstones,UUID.parse(id).toLowerCase()+'.json');
  const readTomb=(id:string)=>{const file=tombFor(id);if(!existsSync(file))return undefined;const value=Tombstone.parse(readJSON(file));if(value.id.toLowerCase()!==id.toLowerCase())throw new Error('Deletion marker ID does not match its filename.');return value;};
  const preserve=(song:CanonicalSong,kind:'local'|'remote')=>{const file=path.join(conflicts,song.id+'-'+fingerprint(song).slice(0,16)+'-'+kind+'.json');if(!existsSync(file))atomicJSON(file,song);};
- const conflict=(report:SyncReport,local:CanonicalSong,remote?:CanonicalSong)=>{
-  preserve(local,'local');if(remote)preserve(remote,'remote');
-  const message=local.id+': local and synced edits differ; both versions are saved in songs/conflicts.';
-  if(!report.conflicts.includes(message))report.conflicts.push(message);
- };
+  // Check if two songs have the same core content (ignoring timestamps)
+  const sameContent=(a:CanonicalSong,b:CanonicalSong)=>{
+    const {createdAt:ac,updatedAt:au,...left}=a;
+    const {createdAt:bc,updatedAt:bu,...right}=b;
+    return JSON.stringify(left)===JSON.stringify(right);
+  };
+  // Attempt to intelligently merge local and remote song edits.
+  // Returns [mergedSong, hasConflict] where hasConflict=true means a true conflict was detected
+  // (same field edited differently), and we should keep the local version.
+  const tryMergeSongs=(local:CanonicalSong,remote:CanonicalSong):[CanonicalSong,boolean]=>{
+    // If content is the same, no merge needed
+    if(sameContent(local,remote))return[local,false];
+    // Start with a shallow copy of local
+    const merged:Record<string,unknown>={...local};
+    let hasConflict=false;
+    // Merge field by field, preferring local for true conflicts
+    const mergeField=<K extends keyof CanonicalSong>(field:K)=>{
+      const localVal=local[field];
+      const remoteVal=remote[field];
+      // If only remote has the field, take it (remote addition)
+      if(localVal===undefined&&remoteVal!==undefined){merged[field]=remoteVal;return;}
+      // If both have the field and values are the same, no conflict
+      if(localVal===remoteVal){return;}
+      // If both have different values, it's a true conflict - keep local
+      if(localVal!==remoteVal){
+        hasConflict=true; // Keep local version (already set as base)
+        return;
+      }
+    };
+    // Fields that are safe to merge (non-critical metadata)
+    const safeToMerge:Array<keyof CanonicalSong>=['publisher','ccliNumber','key','tags','language','notes','tempo'];
+    const mergeFields:Array<keyof CanonicalSong>=[...safeToMerge,'author','copyright'];
+    for(const field of mergeFields){
+      mergeField(field);
+    }
+    // For lyrics and title, true conflict - keep local
+    for(const field of ['lyrics','title'] as Array<keyof CanonicalSong>){
+      mergeField(field);
+    }
+    // For sections and arrangement, try to merge if they don't overlap
+    if(!hasConflict){
+      const localSections=local.sections||[];
+      const remoteSections=remote.sections||[];
+      const localArrangement=local.arrangement||[];
+      const remoteArrangement=remote.arrangement||[];
+      // Merge sections - add remote sections that local doesn't have
+      const localSectionIds=new Set(localSections.map(s=>s.id));
+      for(const rs of remoteSections){
+        if(!localSectionIds.has(rs.id)){merged.sections= [...localSections,rs];}
+      }
+      // Merge arrangement - combine both, deduplicate
+      if(merged.arrangement){
+        const combined=new Set([...(merged.arrangement as string[]),...remoteArrangement]);
+        merged.arrangement=Array.from(combined).filter(id=>localSectionIds.has(id)||remoteSections.some(s=>s.id===id));
+      }else{
+        merged.arrangement=remoteArrangement;
+      }
+    }
+    // Build the merged song, preserving local updatedAt
+    const result:CanonicalSong={
+      id:local.id,
+      title:merged.title as string,
+      lyrics:merged.lyrics as string,
+      author:merged.author as string,
+      copyright:merged.copyright as string,
+      authors:merged.authors as string[],
+      publisher:merged.publisher as string,
+      ccliNumber:merged.ccliNumber as string,
+      key:merged.key as string,
+      tempo:merged.tempo as number,
+      tags:merged.tags as string[],
+      language:merged.language as string,
+      sections:merged.sections as CanonicalSong['sections'],
+      arrangement:merged.arrangement as string[],
+      notes:merged.notes as string,
+      backgroundId:merged.backgroundId as string|undefined,
+      themeId:merged.themeId as string|undefined,
+      linesPerSlide:(merged.linesPerSlide as number|undefined) as 2|3|4|6|undefined,
+      createdAt:local.createdAt,
+      updatedAt:hasConflict?local.updatedAt:new Date().toISOString()
+    };
+    return[result,hasConflict];
+  };
+  const conflict=(report:SyncReport,local:CanonicalSong,remote?:CanonicalSong)=>{
+   const signature=fingerprint(local)+':'+(remote?fingerprint(remote):'missing');
+   if(reportedConflicts.get(local.id)===signature)return;
+   // Only preserve to conflicts directory if truly necessary (last resort)
+   preserve(local,'local');if(remote)preserve(remote,'remote');
+   const message=local.id+': local and synced edits differ; both versions are saved in songs/conflicts.';
+   if(!report.conflicts.includes(message))report.conflicts.push(message);
+   reportedConflicts.set(local.id,signature);
+  };
+
  const archive=(song:CanonicalSong)=>{
   const current=fileFor(song.id);if(!existsSync(current))return;
   if(fingerprint(readSong(current,song.id))!==fingerprint(song))throw new Error('Song changed while syncing. Try syncing again.');
@@ -93,7 +188,7 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
  };
  const maps=()=>new Map(store.listSongs().map(song=>{const record=canonical(song);return [record.id,record] as const;}));
  const canSync=(id:string)=>!locks.owns(id)&&!locks.isLocked(id);
- const persist=():SyncReport=>{
+ const persist=(onlyDeletions=false,ids?:ReadonlySet<string>):SyncReport=>{
   const report=blankReport();if(closed)return report;const local=maps();
   for(const [id,snapshot] of pendingDeletion){
    if(local.has(id)){pendingDeletion.delete(id);continue;}
@@ -101,12 +196,20 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
     atomicJSON(tombFor(id),{id,baseHash:fingerprint(snapshot),deletedAt:new Date().toISOString()});archive(snapshot);baseline.delete(id);pendingDeletion.delete(id);report.deleted++;});
    }catch(error){report.errors.push(id+': '+String(error));}
   }
+  if(onlyDeletions)return report;
   for(const [id,song] of local){
+   if(ids&&!ids.has(id))continue;
    try{
     const file=fileFor(id),remote=existsSync(file)?readSong(file,id):undefined,hash=fingerprint(song),remoteHash=remote?fingerprint(remote):undefined;
-    if(remoteHash===hash){baseline.set(id,hash);continue;}
+    if(remote&&(remoteHash===hash||sameContent(song,remote))){baseline.set(id,remoteHash!);reportedConflicts.delete(id);continue;}
     const tomb=readTomb(id);if(tomb&&tomb.deletedAt>=song.updatedAt){conflict(report,song,remote);continue;}
-    if(remote&&remoteHash!==baseline.get(id)){conflict(report,song,remote);continue;}
+    if(remote&&remoteHash!==baseline.get(id)){
+      const [merged, hasConflict]=tryMergeSongs(song,remote);
+      if(hasConflict){conflict(report,song,remote);continue;}
+      // Merge succeeded - write merged version
+      locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,merged);baseline.set(id,fingerprint(merged));report.written++;});
+      continue;
+    }
     locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,song);baseline.set(id,hash);report.written++;});
    }catch(error){report.errors.push(id+': '+String(error));}
   }
@@ -126,11 +229,16 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
   for(const [id,remote] of disk){
    try{
     const current=local.get(id),hash=fingerprint(remote);if(!current){if(marks.has(id)&&marks.get(id)!.deletedAt>=remote.updatedAt)continue;if(!canSync(id))continue;locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;continue;}
-    const localHash=fingerprint(current);if(hash===localHash){baseline.set(id,hash);continue;}if(!canSync(id))continue;
+    const localHash=fingerprint(current);if(hash===localHash||sameContent(current,remote)){baseline.set(id,hash);reportedConflicts.delete(id);continue;}if(!canSync(id))continue;
     const base=baseline.get(id);
     if((base&&localHash===base)||(!base&&remote.updatedAt>current.updatedAt)){locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;}
     else if(base&&hash===base){/* The local edit will be written by persist. */}
-    else conflict(report,current,remote);
+    else {
+      const [merged, hasConflict]=tryMergeSongs(current,remote);
+      if(hasConflict){conflict(report,current,remote);continue;}
+      // Merge succeeded - sync merged version
+      locks.withLocks([id],()=>store.syncSong(id,merged));baseline.set(id,fingerprint(merged));report.imported++;
+    }
    }catch(error){report.errors.push(id+': '+String(error));}
   }
   return report;
