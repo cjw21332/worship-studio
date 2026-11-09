@@ -54,8 +54,8 @@ export function songLocks(directory:string){
  };
  return {acquire,release,withLocks,owns:(id:string)=>verify(id),isLocked:(id:string)=>existsSync(lockPath(id)),close(){for(const id of [...owned.keys()])release(id);}};
 }
-export type SyncReport={imported:number;written:number;deleted:number;conflicts:string[];errors:string[]};
-const blankReport=():SyncReport=>({imported:0,written:0,deleted:0,conflicts:[],errors:[]});
+export type SyncReport={imported:number;written:number;deleted:number;reconciled:string[];conflicts:string[];errors:string[]};
+const blankReport=():SyncReport=>({imported:0,written:0,deleted:0,reconciled:[],conflicts:[],errors:[]});
 const canonical=(song:Song|({id:string}&SongContent))=>{const normalized=normalizeSong(song);return {id:UUID.parse(song.id).toLowerCase(),...normalized};};
 type CanonicalSong=ReturnType<typeof canonical>;
 const fingerprint=(song:CanonicalSong)=>createHash('sha256').update(JSON.stringify(song)).digest('hex');
@@ -86,89 +86,19 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
  const tombFor=(id:string)=>path.join(tombstones,UUID.parse(id).toLowerCase()+'.json');
  const readTomb=(id:string)=>{const file=tombFor(id);if(!existsSync(file))return undefined;const value=Tombstone.parse(readJSON(file));if(value.id.toLowerCase()!==id.toLowerCase())throw new Error('Deletion marker ID does not match its filename.');return value;};
  const preserve=(song:CanonicalSong,kind:'local'|'remote')=>{const file=path.join(conflicts,song.id+'-'+fingerprint(song).slice(0,16)+'-'+kind+'.json');if(!existsSync(file))atomicJSON(file,song);};
-  // Check if two songs have the same core content (ignoring timestamps)
-  const sameContent=(a:CanonicalSong,b:CanonicalSong)=>{
-    const {createdAt:ac,updatedAt:au,...left}=a;
-    const {createdAt:bc,updatedAt:bu,...right}=b;
-    return JSON.stringify(left)===JSON.stringify(right);
-  };
-  // Attempt to intelligently merge local and remote song edits.
-  // Returns [mergedSong, hasConflict] where hasConflict=true means a true conflict was detected
-  // (same field edited differently), and we should keep the local version.
-  const tryMergeSongs=(local:CanonicalSong,remote:CanonicalSong):[CanonicalSong,boolean]=>{
-    // If content is the same, no merge needed
-    if(sameContent(local,remote))return[local,false];
-    // Start with a shallow copy of local
-    const merged:Record<string,unknown>={...local};
-    let hasConflict=false;
-    // Merge field by field, preferring local for true conflicts
-    const mergeField=<K extends keyof CanonicalSong>(field:K)=>{
-      const localVal=local[field];
-      const remoteVal=remote[field];
-      // If only remote has the field, take it (remote addition)
-      if(localVal===undefined&&remoteVal!==undefined){merged[field]=remoteVal;return;}
-      // If both have the field and values are the same, no conflict
-      if(localVal===remoteVal){return;}
-      // If both have different values, it's a true conflict - keep local
-      if(localVal!==remoteVal){
-        hasConflict=true; // Keep local version (already set as base)
-        return;
-      }
-    };
-    // Fields that are safe to merge (non-critical metadata)
-    const safeToMerge:Array<keyof CanonicalSong>=['publisher','ccliNumber','key','tags','language','notes','tempo'];
-    const mergeFields:Array<keyof CanonicalSong>=[...safeToMerge,'author','copyright'];
-    for(const field of mergeFields){
-      mergeField(field);
-    }
-    // For lyrics and title, true conflict - keep local
-    for(const field of ['lyrics','title'] as Array<keyof CanonicalSong>){
-      mergeField(field);
-    }
-    // For sections and arrangement, try to merge if they don't overlap
-    if(!hasConflict){
-      const localSections=local.sections||[];
-      const remoteSections=remote.sections||[];
-      const localArrangement=local.arrangement||[];
-      const remoteArrangement=remote.arrangement||[];
-      // Merge sections - add remote sections that local doesn't have
-      const localSectionIds=new Set(localSections.map(s=>s.id));
-      for(const rs of remoteSections){
-        if(!localSectionIds.has(rs.id)){merged.sections= [...localSections,rs];}
-      }
-      // Merge arrangement - combine both, deduplicate
-      if(merged.arrangement){
-        const combined=new Set([...(merged.arrangement as string[]),...remoteArrangement]);
-        merged.arrangement=Array.from(combined).filter(id=>localSectionIds.has(id)||remoteSections.some(s=>s.id===id));
-      }else{
-        merged.arrangement=remoteArrangement;
-      }
-    }
-    // Build the merged song, preserving local updatedAt
-    const result:CanonicalSong={
-      id:local.id,
-      title:merged.title as string,
-      lyrics:merged.lyrics as string,
-      author:merged.author as string,
-      copyright:merged.copyright as string,
-      authors:merged.authors as string[],
-      publisher:merged.publisher as string,
-      ccliNumber:merged.ccliNumber as string,
-      key:merged.key as string,
-      tempo:merged.tempo as number,
-      tags:merged.tags as string[],
-      language:merged.language as string,
-      sections:merged.sections as CanonicalSong['sections'],
-      arrangement:merged.arrangement as string[],
-      notes:merged.notes as string,
-      backgroundId:merged.backgroundId as string|undefined,
-      themeId:merged.themeId as string|undefined,
-      linesPerSlide:(merged.linesPerSlide as number|undefined) as 2|3|4|6|undefined,
-      createdAt:local.createdAt,
-      updatedAt:hasConflict?local.updatedAt:new Date().toISOString()
-    };
-    return[result,hasConflict];
-  };
+ const newerVersion=(local:CanonicalSong,remote:CanonicalSong):'local'|'remote'|'ambiguous'=>{
+  const localTime=Date.parse(local.updatedAt),remoteTime=Date.parse(remote.updatedAt);
+  if(!Number.isFinite(localTime)||!Number.isFinite(remoteTime)||localTime===remoteTime)return'ambiguous';
+  return localTime>remoteTime?'local':'remote';
+ };
+ const preserveVersions=(local:CanonicalSong,remote:CanonicalSong)=>{
+  preserve(local,'local');
+  preserve(remote,'remote');
+ };
+ const noteReconciliation=(report:SyncReport,local:CanonicalSong,remote:CanonicalSong,winner:'local'|'remote')=>{
+  preserveVersions(local,remote);
+  report.reconciled.push(local.id+': selected the newer '+(winner==='local'?'local':'synced')+' copy; both versions are saved in songs/conflicts.');
+ };
   const conflict=(report:SyncReport,local:CanonicalSong,remote?:CanonicalSong)=>{
    const signature=fingerprint(local)+':'+(remote?fingerprint(remote):'missing');
    if(reportedConflicts.get(local.id)===signature)return;
@@ -204,10 +134,20 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
     if(remote&&(remoteHash===hash||sameContent(song,remote))){baseline.set(id,remoteHash!);reportedConflicts.delete(id);continue;}
     const tomb=readTomb(id);if(tomb&&tomb.deletedAt>=song.updatedAt){conflict(report,song,remote);continue;}
     if(remote&&remoteHash!==baseline.get(id)){
-      const [merged, hasConflict]=tryMergeSongs(song,remote);
-      if(hasConflict){conflict(report,song,remote);continue;}
-      // Merge succeeded - write merged version
-      locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,merged);baseline.set(id,fingerprint(merged));report.written++;});
+      const base=baseline.get(id);
+      if(base&&hash===base){
+       locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');store.syncSong(id,remote);baseline.set(id,remoteHash!);report.imported++;});
+       continue;
+      }
+      if(base){conflict(report,song,remote);continue;}
+      const winner=newerVersion(song,remote);
+      if(winner==='ambiguous'){conflict(report,song,remote);continue;}
+      noteReconciliation(report,song,remote,winner);
+      if(winner==='remote'){
+       locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');store.syncSong(id,remote);baseline.set(id,remoteHash!);report.imported++;});
+      }else{
+       locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,song);baseline.set(id,hash);report.written++;});
+      }
       continue;
     }
     locks.withLocks([id],()=>{const current=existsSync(file)?readSong(file,id):undefined;if((current?fingerprint(current):undefined)!==remoteHash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,song);baseline.set(id,hash);report.written++;});
@@ -231,13 +171,17 @@ export function createSongFiles(directory:string,store:ReturnType<typeof openSto
     const current=local.get(id),hash=fingerprint(remote);if(!current){if(marks.has(id)&&marks.get(id)!.deletedAt>=remote.updatedAt)continue;if(!canSync(id))continue;locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;continue;}
     const localHash=fingerprint(current);if(hash===localHash||sameContent(current,remote)){baseline.set(id,hash);reportedConflicts.delete(id);continue;}if(!canSync(id))continue;
     const base=baseline.get(id);
-    if((base&&localHash===base)||(!base&&remote.updatedAt>current.updatedAt)){locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;}
+    if(base&&localHash===base){locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;}
     else if(base&&hash===base){/* The local edit will be written by persist. */}
-    else {
-      const [merged, hasConflict]=tryMergeSongs(current,remote);
-      if(hasConflict){conflict(report,current,remote);continue;}
-      // Merge succeeded - sync merged version
-      locks.withLocks([id],()=>store.syncSong(id,merged));baseline.set(id,fingerprint(merged));report.imported++;
+    else if(base){conflict(report,current,remote);}
+    else{
+     const winner=newerVersion(current,remote);
+     if(winner==='ambiguous'){conflict(report,current,remote);continue;}
+     noteReconciliation(report,current,remote,winner);
+     if(winner==='remote'){locks.withLocks([id],()=>store.syncSong(id,remote));baseline.set(id,hash);report.imported++;}
+     else{
+      locks.withLocks([id],()=>{const file=fileFor(id),diskSong=existsSync(file)?readSong(file,id):undefined;if((diskSong?fingerprint(diskSong):undefined)!==hash)throw new Error('Synced file changed before saving. Sync and try again.');atomicJSON(file,current);baseline.set(id,localHash);report.written++;});
+     }
     }
    }catch(error){report.errors.push(id+': '+String(error));}
   }

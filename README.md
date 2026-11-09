@@ -4,9 +4,9 @@
 
 Worship Studio is an offline Windows desktop application for organizing and presenting church services. It brings song lyrics, Bible passages, announcements, images, video, and presentation slides into one workspace, with separate controls for preparation and live output.
 
-**Created by Charles James Walet** · [GitHub: @cjw21332](https://github.com/cjw21332) · **Current release: 2.0.0**
+**Created by Charles James Walet** · [GitHub: @cjw21332](https://github.com/cjw21332) · **Current release: 3.1.0**
 
-[Download the Windows installer](https://github.com/cjw21332/worship-studio/releases/download/v2.0.0/Worship-Studio-2.0.0-x64-setup.exe) · [All releases](https://github.com/cjw21332/worship-studio/releases) · [Report an issue](https://github.com/cjw21332/worship-studio/issues)
+[Download the Windows installer](https://github.com/cjw21332/worship-studio/releases/download/v3.1.0/Worship-Studio-3.1.0-x64-setup.exe) · [All releases](https://github.com/cjw21332/worship-studio/releases) · [Report an issue](https://github.com/cjw21332/worship-studio/issues)
 
 ## What is it for?
 
@@ -104,8 +104,8 @@ The installer includes the application runtime. **Node.js, Git, and developer to
 
 ### Installation steps
 
-1. Open the [2.0.0 release](https://github.com/cjw21332/worship-studio/releases/tag/v2.0.0).
-2. Under **Assets**, download **Worship-Studio-2.0.0-x64-setup.exe**. The source-code ZIP is for developers, not installation.
+1. Open the [3.1.0 release](https://github.com/cjw21332/worship-studio/releases/tag/v3.1.0).
+2. Under **Assets**, download **Worship-Studio-3.1.0-x64-setup.exe**. The source-code ZIP is for developers, not installation.
 3. Copy that single installer to the destination PC if needed, then run it.
 4. Follow the setup wizard, choose the installation location, and finish installation.
 5. Open **Worship Studio** from the desktop or Start menu and follow the welcome guide.

@@ -5,7 +5,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
 import {openStore,type Item} from './database';
-import {initialPresentation,preview,takeLive,blackout,toggleOutput,toggleFreeze,updatePresentation,clampStageLayout,canAutoAdvance,type Presentation,type Slide} from './presentation';
+import {initialPresentation,preview,takeLive,blackout,toggleOutput,toggleFreeze,updatePresentation,clampStageLayout,canAutoAdvance,serviceSlidePosition,type Presentation,type Slide} from './presentation';
 import {workspaceLocation} from './workspace';
 import {songHandlers} from './song-handlers';
 import {bibleHandlers} from './bible-handlers';
@@ -143,7 +143,11 @@ app.whenReady().then(async()=>{
   await setNext();scheduleAdvance();await render();return state;
  };
  const songOps=songHandlers(store,win,workspaceRoot,app.getPath('userData'));
- const reportSync=(report:ReturnType<typeof songOps.sync>)=>{for(const message of [...report.conflicts,...report.errors])activity('Song sync: '+message,'error');};
+ const reportSync=(report:ReturnType<typeof songOps.sync>)=>{
+  for(const message of report.conflicts)activity('Song sync: '+message,'error');
+  for(const message of report.errors)activity('Song sync: '+message,'error');
+  if(report.reconciled.length)activity('Song sync: reconciled '+report.reconciled.length+' differing song '+(report.reconciled.length===1?'copy':'copies')+' by update time; both versions are saved in songs/conflicts.');
+ };
  // Open from SQLite first; portable file mirrors must not delay the first window.
  let mirrorsReady=false,mirrorTimer:ReturnType<typeof setTimeout>|undefined;
  const mirrorQueue=()=>store.listSongs().map(song=>song.id);
@@ -173,10 +177,15 @@ app.whenReady().then(async()=>{
    const execute=async()=>{
     if(command.action==='blackout'||command.action==='logo'){state=toggleOutput(state,command.action);await render();return;}
     if(command.action==='live'){await sendLive();return;}
-    const items=store.listItems();let item:Item|undefined=items.find(i=>i.id===(state.live?.itemId||state.preview?.itemId))||items[0],index=state.live?.index||0;
+    const items=store.listItems();let item:Item|undefined,index:number;
     if(command.action==='goto'){item=items.find(i=>i.id===command.itemId);index=command.index;}
-    else{const direction=command.action==='next'?1:-1;index+=direction;if(item&&index>=item.slides.length){item=items[items.findIndex(i=>i.id===item!.id)+1];index=0;}else if(item&&index<0){item=items[items.findIndex(i=>i.id===item!.id)-1];index=item?item.slides.length-1:0;}}
-    if(!item)throw new Error('No more service items in this direction.');state=preview(state,await resolveSlide(item.id,index));await sendLive();
+    else{
+     const direction=command.action==='next'?1:-1;
+     const position=serviceSlidePosition(items,state.live?.itemId||state.preview?.itemId,state.live?.index??state.preview?.index,direction);
+     if(!position)return;
+     item=position.item;index=position.index;
+    }
+    if(!item)throw new Error('Choose a service item before navigating.');state=preview(state,await resolveSlide(item.id,index));await sendLive();
    };
    const next=remoteQueue.then(execute);remoteQueue=next.catch(()=>{});return next;
   },
@@ -286,10 +295,9 @@ app.whenReady().then(async()=>{
 },
   'presentation:navigate':async(_event,value)=>{
    const {direction}=z.object({direction:z.union([z.literal(-1),z.literal(1)])}).strict().parse(value);
-   const items=store.listItems();let item=items.find(i=>i.id===(state.live?.itemId||state.preview?.itemId))||items[0];if(!item)throw new Error('Add content to the service first.');
-   let index=(state.live?.index??state.preview?.index??-1)+direction;
-   if(index>=item.slides.length){item=items[items.findIndex(i=>i.id===item.id)+1];index=0;}else if(index<0){item=items[items.findIndex(i=>i.id===item.id)-1];index=item?item.slides.length-1:0;}
-   if(!item)throw new Error('You reached the end of the service in this direction.');state=preview(state,await resolveSlide(item.id,index));return sendLive();
+   const position=serviceSlidePosition(store.listItems(),state.live?.itemId||state.preview?.itemId,state.live?.index??state.preview?.index,direction);
+   if(!position)return state;
+   state=preview(state,await resolveSlide(position.item.id,position.index));return sendLive();
   },
   'presentation:live':()=>sendLive(),
   'presentation:blackout':async()=>{state=blackout(state);await render();return state;},

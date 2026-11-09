@@ -1,0 +1,44 @@
+:root[data-operator-ui=v2][data-theme=light] .ws-icon-button,
+.ws-theme-light .ws-icon-button {
+  border-color: var(--ws-border-control);
+  background: var(--ws-bg-pane);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-icon-button:hover,
+.ws-theme-light .ws-icon-button:hover {
+  border-color: var(--ws-accent);
+  background: var(--ws-bg-hover);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-service,
+.ws-theme-light .ws-service {
+  border: 1px solid var(--ws-border);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-rail,
+.ws-theme-light .ws-rail {
+  border-right-color: var(--ws-border);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-service-title input,
+.ws-theme-light .ws-service-title input {
+  border-color: var(--ws-border);
+  background: var(--ws-bg-pane);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-service-title input:hover,
+.ws-theme-light .ws-service-title input:hover {
+  border-color: var(--ws-border-control);
+}
+
+:root[data-operator-ui=v2][data-theme=light] .ws-pane,
+.ws-theme-light .ws-pane {
+  border: 1px solid var(--ws-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-operator-ui=v2][data-theme=light] *,
+  .ws-theme-light * {
+    transition: none !important;
+  }
+}

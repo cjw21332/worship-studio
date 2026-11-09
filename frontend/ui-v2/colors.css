@@ -1,3 +1,24 @@
-:root[data-operator-ui=v2][data-theme="light"],.ws-theme-light{--ws-bg-app:#FFFFFF;--ws-bg-pane:#FFFFFF;--ws-bg-pane-alt:#F8FAFB;--ws-bg-hover:#F8FAFB;--ws-bg-selected:#F0F4F8;--ws-border:#000000;--ws-border-control:#000000;--ws-text:#0F161C;--ws-text-muted:#5A5A5A;--ws-accent:#000000;--ws-accent-hover:#333333;--ws-accent-pressed:#555555;--ws-text-on-accent:#FFFFFF;--ws-accent-soft:#F8FAFB;--ws-selected-text:#000000;--ws-live:#000000;--ws-text-on-live:#FFFFFF;--ws-live-text:#FFFFFF;--ws-live-soft:#1A1A1A;--ws-warning:#000000;--ws-warning-soft:#2A2A2A;--ws-frozen:#000000;--ws-frozen-soft:#2A2A2A;--ws-success:#000000;--ws-focus:#000000;--ws-monitor:#0B0F12;--ws-scrim:rgba(0,0,0,.50);--ws-scrollbar:#5A5A5A}
-:root[data-operator-ui=v2][data-theme="dark"],.ws-theme-dark{--ws-bg-app:#000000;--ws-bg-pane:#0B0F12;--ws-bg-pane-alt:#141A20;--ws-bg-hover:#141A20;--ws-bg-selected:#1A1A1A;--ws-border:#2B3A46;--ws-border-control:#2B3A46;--ws-text:#FFFFFF;--ws-text-muted:#7A7A7A;--ws-accent:#FFFFFF;--ws-accent-hover:#CCCCCC;--ws-accent-pressed:#EEEEEE;--ws-text-on-accent:#000000;--ws-accent-soft:#1A1A1A;--ws-selected-text:#FFFFFF;--ws-live:#FFFFFF;--ws-text-on-live:#000000;--ws-live-text:#FFFFFF;--ws-live-soft:#3A3A3A;--ws-warning:#FFFFFF;--ws-warning-soft:#3A3A3A;--ws-frozen:#00B4D8;--ws-frozen-soft:#1A1A1A;--ws-success:#00E676;--ws-focus:#00E5FF;--ws-monitor:#0B0F12;--ws-scrim:rgba(255,255,255,.15);--ws-scrollbar:#3A3A3A}
-:root[data-operator-ui=v2][data-theme="high-contrast"],.ws-theme-high-contrast{--ws-bg-app:#000000;--ws-bg-pane:#000000;--ws-bg-pane-alt:#000000;--ws-bg-hover:#1A1A1A;--ws-bg-selected:#FFFFFF;--ws-border:#FFFFFF;--ws-border-control:#FFFFFF;--ws-text:#FFFFFF;--ws-text-muted:#FFFFFF;--ws-accent:#FFD60A;--ws-accent-hover:#FFE55C;--ws-accent-pressed:#FFF08A;--ws-text-on-accent:#000000;--ws-accent-soft:#2A2400;--ws-selected-text:#000000;--ws-live:#D00000;--ws-text-on-live:#FFFFFF;--ws-live-text:#FFFFFF;--ws-live-soft:#000000;--ws-warning:#FFD60A;--ws-warning-soft:#000000;--ws-frozen:#7FD4FF;--ws-frozen-soft:#000000;--ws-success:#7CFF9B;--ws-focus:#00E5FF;--ws-monitor:#000000;--ws-scrim:rgba(0,0,0,.85);--ws-scrollbar:#FFFFFF}
+:root[data-operator-ui=v2][data-theme="light"],.ws-theme-light{
+  --ws-bg-app:#EEF2EF;--ws-bg-pane:#FAFBF8;--ws-bg-pane-alt:#F3F6F2;--ws-bg-hover:#E9EFEB;--ws-bg-selected:#DDECE7;
+  --ws-border:#788980;--ws-border-control:#66766F;--ws-text:#23313A;--ws-text-muted:#51646D;
+  --ws-accent:#216B62;--ws-accent-hover:#18574F;--ws-accent-pressed:#10473F;--ws-text-on-accent:#FFFFFF;--ws-accent-soft:#E3F0EC;--ws-selected-text:#173D38;
+  --ws-live:#A83436;--ws-text-on-live:#FFFFFF;--ws-live-text:#A83436;--ws-live-soft:#F7E5E3;
+  --ws-warning:#80501A;--ws-warning-soft:#F8EBD7;--ws-frozen:#285D86;--ws-frozen-soft:#E2EDF5;--ws-success:#276547;
+  --ws-focus:#126B61;--ws-monitor:#0E171B;--ws-scrim:rgba(20,30,34,.58);--ws-scrollbar:#75877F
+}
+:root[data-operator-ui=v2][data-theme="dark"],.ws-theme-dark{
+  --ws-bg-app:#141E22;--ws-bg-pane:#1C292D;--ws-bg-pane-alt:#182429;--ws-bg-hover:#27383D;--ws-bg-selected:#25443F;
+  --ws-border:#3C5054;--ws-border-control:#7C9695;--ws-text:#ECF2F1;--ws-text-muted:#B2C1C1;
+  --ws-accent:#8ED1C4;--ws-accent-hover:#A8E0D6;--ws-accent-pressed:#C1ECE4;--ws-text-on-accent:#103D38;--ws-accent-soft:#223D3B;--ws-selected-text:#E5F4F0;
+  --ws-live:#F06F6E;--ws-text-on-live:#271212;--ws-live-text:#FF9B95;--ws-live-soft:#492728;
+  --ws-warning:#FFD084;--ws-warning-soft:#453722;--ws-frozen:#8CC8EF;--ws-frozen-soft:#243C4B;--ws-success:#8DD4A7;
+  --ws-focus:#A5E7D7;--ws-monitor:#0D1417;--ws-scrim:rgba(0,0,0,.68);--ws-scrollbar:#819493
+}
+:root[data-operator-ui=v2][data-theme="high-contrast"],.ws-theme-high-contrast{
+  --ws-bg-app:#000000;--ws-bg-pane:#000000;--ws-bg-pane-alt:#000000;--ws-bg-hover:#1A1A1A;--ws-bg-selected:#FFFFFF;
+  --ws-border:#FFFFFF;--ws-border-control:#FFFFFF;--ws-text:#FFFFFF;--ws-text-muted:#FFFFFF;
+  --ws-accent:#FFD60A;--ws-accent-hover:#FFE55C;--ws-accent-pressed:#FFF08A;--ws-text-on-accent:#000000;--ws-accent-soft:#2A2400;--ws-selected-text:#000000;
+  --ws-live:#D00000;--ws-text-on-live:#FFFFFF;--ws-live-text:#FF6B6B;--ws-live-soft:#330000;
+  --ws-warning:#FFD60A;--ws-warning-soft:#332900;--ws-frozen:#7FD4FF;--ws-frozen-soft:#001B2B;--ws-success:#7CFF9B;
+  --ws-focus:#00E5FF;--ws-monitor:#000000;--ws-scrim:rgba(0,0,0,.85);--ws-scrollbar:#FFFFFF
+}

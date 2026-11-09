@@ -1,13 +1,10 @@
-import React, {useState} from 'react';
-import {Modal, Button} from './ui';
+import {useState} from 'react';
+import {Modal} from './ui';
+import {useDeskTranslate} from './i18n';
+import {filterTutorialLessons, type TutorialLesson} from './tutorial-guide-model';
 import './tutorial-guide.css';
 
-type Lesson = {
-  title: string;
-  intro: string;
-  steps: string[];
-  check?: string;
-};
+type Lesson = TutorialLesson;
 
 const lessons: Lesson[] = [
   {
@@ -106,26 +103,17 @@ const lessons: Lesson[] = [
   },
 ];
 
-export function Tutorial({onClose}: { onClose: () => void }) {
+export function Tutorial({onClose}: {onClose: () => void}) {
   const [index, setIndex] = useState(0);
   const [query, setQuery] = useState('');
-
-  const matches = lessons
-    .map((lesson, i) => ({ lesson, i }))
-    .filter(
-      ({ lesson }) =>
-        `${lesson.title} ${lesson.intro} ${lesson.steps.join(' ')} ${lesson.check || ''}`
-          .toLowerCase()
-          .includes(query.toLowerCase().trim())
-    );
-
-  const current = lessons[index];
-
+  const tr = useDeskTranslate();
+  const matches = filterTutorialLessons(lessons, query);
+  const selectedPosition = Math.max(0, matches.findIndex(match => match.index === index));
+  const selected = matches[selectedPosition];
+  const current = selected?.lesson;
   const navigate = (delta: number) => {
-    const newIndex = index + delta;
-    if (newIndex >= 0 && newIndex < lessons.length) {
-      setIndex(newIndex);
-    }
+    const next = matches[selectedPosition + delta];
+    if (next) setIndex(next.index);
   };
 
   return (
@@ -133,182 +121,97 @@ export function Tutorial({onClose}: { onClose: () => void }) {
       title="Worship Studio walkthrough"
       onClose={onClose}
       wide
-      style={{
-        padding: '24px',
-      }}
+      className="tutorial-dialog"
     >
-      <p className="hint" style={{fontSize: '13px', color: 'var(--muted)', marginBottom: '24px'}}>
-        Choose a topic, follow the steps, and practice with a rehearsal display. You can reopen this guide from Help → Welcome guide.
-      </p>
-
-      <nav aria-label="Walkthrough topics" style={{marginBottom: '24px'}}>
-        <label htmlFor="tutorial-search" style={{display: 'block', fontWeight: '600', marginBottom: '6px'}}>
-          {tr("Find a topic")}
-        </label>
-        <input
-          id="tutorial-search"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search the guide"
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--radius)',
-            fontSize: '14px',
-            background: 'var(--panel)',
-            color: 'var(--ink)',
-          }}
-        />
-        <div className="tutorial-topics" style={{display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px'}}>
-          {matches.map(({ lesson, i }) => (
-            <button
-              key={lesson.title}
-              aria-current={index === i ? 'step' : undefined}
-              onClick={() => setIndex(i)}
-              style={{
-                background: 'var(--panel)',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius)',
-                padding: '8px 12px',
-                fontSize: '14px',
-                color: 'var(--ink)',
-                cursor: 'pointer',
-                transition: 'border-color .12s',
-                width: '100%',
-                textAlign: 'left',
-              }}
-            >
-              {lesson.title}
-            </button>
-          ))}
-          {!matches.length && (
-            <p style={{padding: '8px 12px', color: 'var(--muted)', fontSize: '13px'}}>
-              No topics found. Try another search.
-            </p>
-          )}
-        </div>
-      </nav>
-
-      <section
-        aria-live="polite"
-        style={{
-          background: 'var(--panel)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius)',
-          padding: '24px',
-          minHeight: '400px',
-        }}
-      >
-        <span className="badge" style={{
-          color: 'var(--muted)',
-          borderColor: 'var(--line)',
-          borderRadius: '20px',
-          padding: '3px 8px',
-          whiteSpace: 'nowrap',
-          fontSize: '12px',
-          marginBottom: '16px',
-        }}>
-          {index + 1} / {lessons.length}
-        </span>
-
-        <h2 style={{margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600'}}>
-          {current.title}
-        </h2>
-
-        <p style={{fontSize: '14px', lineHeight: '1.55', marginBottom: '16px'}}>
-          {current.intro}
+      <div className="tutorial-guide">
+        <p className="tutorial-intro">
+          {tr('Choose a topic, follow the steps, and practice with a rehearsal display. You can reopen this guide from Help → Welcome guide.')}
         </p>
-
-        <ol style={{
-          paddingLeft: '24px',
-          margin: '0',
-          fontSize: '14px',
-          lineHeight: '1.55',
-        }}>
-          {current.steps.map(step => (
-            <li key={step} style={{
-              marginBottom: '8px',
-              padding: '6px 0',
-              borderBottom: '1px solid var(--subtle)',
-              lastChild: {marginBottom: 0},
-            }}>
-              {step}
-            </li>
-          ))}
-        </ol>
-
-        {current.check && (
-          <p
-            className="onboarding-step"
-            style={{
-              margin: '16px 0',
-              padding: '12px 16px',
-              background: 'var(--subtle)',
-              borderRadius: 'var(--radius)',
-              fontSize: '13px',
-              lineHeight: '1.55',
-            }}
-          >
-            <strong>{tr("Before moving on: ")}</strong>{current.check}
-          </p>
-        )}
-
-        <div className="dialog-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px'}}>
-          <button
-            disabled={index === 0}
-            onClick={() => navigate(-1)}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid var(--line)',
-              borderRadius: 'var(--radius)',
-              background: 'var(--panel)',
-              color: 'var(--ink)',
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: index === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {tr("Previous")}
-          </button>
-
-          {index < lessons.length - 1 ? (
-            <button
-              className="primary"
-              onClick={() => navigate(1)}
-              style={{
-                padding: '8px 16px',
-                border: '1px solid var(--accent)',
-                borderRadius: 'var(--radius)',
-                background: 'var(--accent)',
-                color: 'var(--panel)',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              {tr("Next topic")}
-            </button>
-          ) : (
-            <button
-              className="primary"
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                border: '1px solid var(--accent)',
-                borderRadius: 'var(--radius)',
-                background: 'var(--accent)',
-                color: 'var(--panel)',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              {tr("Finish")}
-            </button>
-          )}
+        <div className="tutorial-layout">
+          <nav className="tutorial-navigation" aria-label={tr('Walkthrough topics')}>
+            <label htmlFor="tutorial-search">{tr('Find a topic')}</label>
+            <input
+              id="tutorial-search"
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={tr('Search the guide')}
+            />
+            <div className="tutorial-topics">
+              {matches.map(({lesson, index: topicIndex}) => (
+                <button
+                  type="button"
+                  key={lesson.title}
+                  aria-current={selected?.index === topicIndex ? 'step' : undefined}
+                  onClick={() => setIndex(topicIndex)}
+                >
+                  {lesson.title}
+                </button>
+              ))}
+              {!matches.length && (
+                <div className="tutorial-empty">
+                  <p>{tr('No topics found. Try another search.')}</p>
+                  <button type="button" onClick={() => setQuery('')}>{tr('Clear search')}</button>
+                </div>
+              )}
+            </div>
+          </nav>
+          <section className="tutorial-content" aria-live="polite" aria-atomic="true">
+            {current ? (
+              <>
+                <div className="tutorial-progress" aria-label={`${tr('Topic')} ${selectedPosition + 1} ${tr('of')} ${matches.length}`}>
+                  <span>{selectedPosition + 1} / {matches.length}</span>
+                  <div
+                    className="tutorial-progress-track"
+                    role="progressbar"
+                    aria-label={tr('Walkthrough progress')}
+                    aria-valuemin={1}
+                    aria-valuemax={matches.length}
+                    aria-valuenow={selectedPosition + 1}
+                  >
+                    <span style={{width: `${((selectedPosition + 1) / matches.length) * 100}%`}} />
+                  </div>
+                </div>
+                <div className="tutorial-lesson">
+                  <h3>{current.title}</h3>
+                  <p className="tutorial-lesson-intro">{current.intro}</p>
+                  <ol>
+                    {current.steps.map(step => <li key={step}>{step}</li>)}
+                  </ol>
+                  {current.check && (
+                    <aside className="tutorial-check">
+                      <strong>{tr('Before moving on')}</strong>
+                      <p>{current.check}</p>
+                    </aside>
+                  )}
+                </div>
+                <footer className="tutorial-actions">
+                  <button
+                    type="button"
+                    disabled={selectedPosition === 0}
+                    onClick={() => navigate(-1)}
+                  >
+                    {tr('Previous')}
+                  </button>
+                  {selectedPosition < matches.length - 1 ? (
+                    <button type="button" className="primary" onClick={() => navigate(1)}>
+                      {tr('Next topic')}
+                    </button>
+                  ) : (
+                    <button type="button" className="primary" onClick={onClose}>
+                      {tr('Finish')}
+                    </button>
+                  )}
+                </footer>
+              </>
+            ) : (
+              <p className="tutorial-no-selection" role="status">
+                {tr('No topics found. Try another search.')}
+              </p>
+            )}
+          </section>
         </div>
-      </section>
+      </div>
     </Modal>
   );
 }

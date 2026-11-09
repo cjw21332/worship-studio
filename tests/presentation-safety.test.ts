@@ -10,6 +10,7 @@ import {
   visiblePresentation,
   updatePresentation,
   canAutoAdvance,
+  serviceSlidePosition,
   type Presentation,
   type Slide
 } from '../backend/presentation';
@@ -164,4 +165,27 @@ test('stage state is preserved through freeze cycle', () => {
   state = toggleFreeze(state);
 
   assert.deepEqual(state.stage, customStage);
+});
+
+test('service navigation crosses items and stops cleanly at either boundary', () => {
+  const items = [
+    {id: 'first', slides: ['one', 'two']},
+    {id: 'empty', slides: []},
+    {id: 'last', slides: ['three']},
+  ];
+
+  assert.deepEqual(serviceSlidePosition(items, 'first', 0, 1), {item: items[0], index: 1});
+  assert.deepEqual(serviceSlidePosition(items, 'first', 1, 1), {item: items[2], index: 0});
+  assert.deepEqual(serviceSlidePosition(items, 'last', 0, -1), {item: items[0], index: 1});
+  assert.equal(serviceSlidePosition(items, 'first', 0, -1), null);
+  assert.equal(serviceSlidePosition(items, 'last', 0, 1), null);
+});
+
+test('service navigation starts at the first slide and handles empty services', () => {
+  const items = [{id: 'first', slides: ['one']}];
+
+  assert.deepEqual(serviceSlidePosition(items, undefined, undefined, 1), {item: items[0], index: 0});
+  assert.equal(serviceSlidePosition(items, undefined, undefined, -1), null);
+  assert.deepEqual(serviceSlidePosition(items, 'removed', 4, 1), {item: items[0], index: 0});
+  assert.equal(serviceSlidePosition([], undefined, undefined, 1), null);
 });

@@ -16,6 +16,7 @@ export type StageBox={id:StageBoxId;x:number;y:number;width:number;height:number
 export type StageState={message:string;showChords:boolean;layout:StageBox[]};
 export type Alert={id:string;text:string;scrolling:boolean;expiresAt?:number};
 export type Timer={id:string;label:string;endsAt:number;pausedRemaining?:number};
+export type NavigableServiceItem={id:string;slides:readonly unknown[]};
 export type Presentation={
  preview:Slide|null;live:Slide|null;next:Slide|null;blackout:boolean;clear:boolean;logo:boolean;freeze:boolean;
  frozenLive?:Slide|null;frozenNext?:Slide|null;frozenClear?:boolean;frozenLogo?:boolean;frozenBlackout?:boolean;
@@ -48,6 +49,26 @@ export function updatePresentation(state:Presentation,patch:Partial<Omit<Present
  return {...structuredClone(state),...structuredClone(patch),revision:(state.revision||0)+1,updatedAt:Date.now()};
 }
 export function preview(state:Presentation,slide:Slide):Presentation{return updatePresentation(state,{preview:slide});}
+export function serviceSlidePosition<T extends NavigableServiceItem>(
+ items:readonly T[],
+ currentItemId:string|undefined,
+ currentIndex:number|undefined,
+ direction:-1|1
+):{item:T;index:number}|null{
+ if(!items.length)return null;
+ const foundAt=currentItemId?items.findIndex(item=>item.id===currentItemId):-1;
+ const hasCurrent=foundAt>=0;
+ let itemAt=hasCurrent?foundAt:0,index=hasCurrent?(currentIndex??-1):-1;
+ if(!hasCurrent&&direction<0)return null;
+ index+=direction;
+ while(itemAt>=0&&itemAt<items.length){
+  const item=items[itemAt];
+  if(index>=0&&index<item.slides.length)return {item,index};
+  itemAt+=direction;
+  index=direction>0?0:(items[itemAt]?.slides.length??0)-1;
+ }
+ return null;
+}
 export function takeLive(state:Presentation):Presentation{
  if(!state.preview)throw new Error('Choose a slide to preview first.');
  return updatePresentation(state,{live:state.preview,blackout:false,clear:false,logo:false});

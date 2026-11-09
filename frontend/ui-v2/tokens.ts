@@ -1,12 +1,134 @@
-import{contrastRatio}from'../desk-tokens';
-const light={
- 'bg-app':'#FFF','bg-pane':'#FFF','bg-pane-alt':'#F8F','bg-hover':'#F8F','bg-selected':'#F0F4F8',border:'#000','border-control':'#000',text:'#0F161C','text-muted':'#5A5A',accent:'#000','accent-hover':'#333','accent-pressed':'#555','text-on-accent':'#FFF','accent-soft':'#F8F','selected-text':'#000',live:'#000','text-on-live':'#FFF','live-text':'#FFF','live-soft':'#1A1',warning:'#000','warning-soft':'#2A2',frozen:'#000','frozen-soft':'#2A2',success:'#000',focus:'#000',monitor:'#0B0F12',scrim:'rgba(0,0,0,.50)',scrollbar:'#5A5A'
+import {contrastRatio} from '../desk-tokens';
+
+const light = {
+  'bg-app': '#EEF2EF',
+  'bg-pane': '#FAFBF8',
+  'bg-pane-alt': '#F3F6F2',
+  'bg-hover': '#E9EFEB',
+  'bg-selected': '#DDECE7',
+  border: '#788980',
+  'border-control': '#66766F',
+  text: '#23313A',
+  'text-muted': '#51646D',
+  accent: '#216B62',
+  'accent-hover': '#18574F',
+  'accent-pressed': '#10473F',
+  'text-on-accent': '#FFFFFF',
+  'accent-soft': '#E3F0EC',
+  'selected-text': '#173D38',
+  live: '#A83436',
+  'text-on-live': '#FFFFFF',
+  'live-text': '#A83436',
+  'live-soft': '#F7E5E3',
+  warning: '#80501A',
+  'warning-soft': '#F8EBD7',
+  frozen: '#285D86',
+  'frozen-soft': '#E2EDF5',
+  success: '#276547',
+  focus: '#126B61',
+  monitor: '#0E171B',
+  scrim: 'rgba(20,30,34,.58)',
+  scrollbar: '#75877F',
 };
-export const wsThemes:Record<string,typeof light>={light,dark:{
- 'bg-app':'#000','bg-pane':'#0B1','bg-pane-alt':'#1420','bg-hover':'#1420','bg-selected':'#1A1A',border:'#2B3A46','border-control':'#2B3A46',text:'#FFF','text-muted':'#7A7A',accent:'#FFF','accent-hover':'#CCCC','accent-pressed':'#EEEE','text-on-accent':'#000','accent-soft':'#1A1A','selected-text':'#FFF',live:'#FFF','text-on-live':'#000','live-text':'#FFF','live-soft':'#3A3A',warning:'#FFF','warning-soft':'#3A3A',frozen:#00B4D8,'frozen-soft':'#1A1A',success:#00E676,focus:#00E5FF,monitor:#0B0F12,scrim:'rgba(255,255,255,.15)',scrollbar:#3A3A
-},'high-contrast':{
- 'bg-app':'#000','bg-pane':'#000','bg-pane-alt':'#000','bg-hover':'#1A1A','bg-selected':'#FFF',border:'#FFF','border-control':'#FFF',text:'#FFF','text-muted':'#FFF',accent:'#FFD60A','accent-hover':'#FFE55C','accent-pressed':'#FFF08A','text-on-accent':'#000','accent-soft':'#2A2400','selected-text':'#000',live:'#D000','text-on-live':'#FFF','live-text':'#FFF','live-soft':'#0000',warning:#FFD60A,'warning-soft':'#0000',frozen:#7FD4FF,'frozen-soft':'#0000',success:#7CFF9B,focus:#00E5FF,monitor:#0000,scrim:'rgba(0,0,0,.85)',scrollbar:#FFF
-}};
-type Token=keyof typeof light;
-export const wsPairs:[Token,Token,number][]=[...(['bg-app','bg-pane','bg-pane-alt','bg-hover'] as Token[]).flatMap(bg=>([['text',bg,4.5],['text-muted',bg,4.5],['accent',bg,4.5],['live-text',bg,4.5],['border-control',bg,3],['focus',bg,3]] as [Token,Token,number][])),['selected-text','bg-selected',4.5],['text','accent-soft',4.5],['text-on-accent','accent',4.5],['text-on-accent','accent-hover',4.5],['text-on-accent','accent-pressed',4.5],['text-on-live','live',4.5],['live-text','live-soft',4.5],['warning','warning-soft',4.5],['frozen','frozen-soft',4.5],['success','bg-pane',4.5],['frozen','bg-pane',4.5],['text-on-live','monitor',4.5]]);
-export function checkWSContrast(){return Object.entries(wsThemes).flatMap(([theme,t])=>wsPairs.map(([foreground,background,minimum])=>({theme,foreground,background,minimum,ratio:contrastRatio(t[foreground],t[background])})));}}
+
+export const wsThemes: Record<string, typeof light> = {
+  light,
+  dark: {
+    'bg-app': '#141E22',
+    'bg-pane': '#1C292D',
+    'bg-pane-alt': '#182429',
+    'bg-hover': '#27383D',
+    'bg-selected': '#25443F',
+    border: '#3C5054',
+    'border-control': '#7C9695',
+    text: '#ECF2F1',
+    'text-muted': '#B2C1C1',
+    accent: '#8ED1C4',
+    'accent-hover': '#A8E0D6',
+    'accent-pressed': '#C1ECE4',
+    'text-on-accent': '#103D38',
+    'accent-soft': '#223D3B',
+    'selected-text': '#E5F4F0',
+    live: '#F06F6E',
+    'text-on-live': '#271212',
+    'live-text': '#FF9B95',
+    'live-soft': '#492728',
+    warning: '#FFD084',
+    'warning-soft': '#453722',
+    frozen: '#8CC8EF',
+    'frozen-soft': '#243C4B',
+    success: '#8DD4A7',
+    focus: '#A5E7D7',
+    monitor: '#0D1417',
+    scrim: 'rgba(0,0,0,.68)',
+    scrollbar: '#819493',
+  },
+  'high-contrast': {
+    'bg-app': '#000000',
+    'bg-pane': '#000000',
+    'bg-pane-alt': '#000000',
+    'bg-hover': '#1A1A1A',
+    'bg-selected': '#FFFFFF',
+    border: '#FFFFFF',
+    'border-control': '#FFFFFF',
+    text: '#FFFFFF',
+    'text-muted': '#FFFFFF',
+    accent: '#FFD60A',
+    'accent-hover': '#FFE55C',
+    'accent-pressed': '#FFF08A',
+    'text-on-accent': '#000000',
+    'accent-soft': '#2A2400',
+    'selected-text': '#000000',
+    live: '#D00000',
+    'text-on-live': '#FFFFFF',
+    'live-text': '#FF6B6B',
+    'live-soft': '#330000',
+    warning: '#FFD60A',
+    'warning-soft': '#332900',
+    frozen: '#7FD4FF',
+    'frozen-soft': '#001B2B',
+    success: '#7CFF9B',
+    focus: '#00E5FF',
+    monitor: '#000000',
+    scrim: 'rgba(0,0,0,.85)',
+    scrollbar: '#FFFFFF',
+  },
+};
+
+type Token = keyof typeof light;
+
+export const wsPairs: [Token, Token, number][] = [
+  ...(['bg-app', 'bg-pane', 'bg-pane-alt', 'bg-hover'] as Token[]).flatMap(background =>
+    ([
+      ['text', background, 4.5],
+      ['text-muted', background, 4.5],
+      ['accent', background, 4.5],
+      ['live-text', background, 4.5],
+      ['border-control', background, 3],
+      ['focus', background, 3],
+    ] as [Token, Token, number][]),
+  ),
+  ['selected-text', 'bg-selected', 4.5],
+  ['text', 'accent-soft', 4.5],
+  ['text-on-accent', 'accent', 4.5],
+  ['text-on-accent', 'accent-hover', 4.5],
+  ['text-on-accent', 'accent-pressed', 4.5],
+  ['text-on-live', 'live', 4.5],
+  ['live-text', 'live-soft', 4.5],
+  ['warning', 'warning-soft', 4.5],
+  ['frozen', 'frozen-soft', 4.5],
+  ['success', 'bg-pane', 4.5],
+  ['frozen', 'bg-pane', 4.5],
+];
+
+export function checkWSContrast() {
+  return Object.entries(wsThemes).flatMap(([theme, colors]) =>
+    wsPairs.map(([foreground, background, minimum]) => ({
+      theme,
+      foreground,
+      background,
+      minimum,
+      ratio: contrastRatio(colors[foreground], colors[background]),
+    })),
+  );
+}

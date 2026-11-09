@@ -6,3 +6,19 @@
 .ws-collapsed-menubar .ws-icon-button{width:auto;min-width:calc(72px * var(--ws-scale));padding-inline:12px}
 
 :root[data-operator-ui=v2] .ws-topbar .ws-collapsed-menubar .ws-icon-button{width:auto;min-width:calc(72px * var(--ws-scale));padding-inline:12px}
+
+.ws-topbar{gap:12px;padding-inline:16px}
+.ws-brand{width:32px;height:36px;border-radius:6px;background:var(--ws-accent-soft)}
+.ws-service-title input{font-size:calc(16px * var(--ws-scale));line-height:1.4}
+.ws-service-title input:focus-visible{background:var(--ws-bg-pane);border-color:var(--ws-border-control)}
+.ws-pane-header{min-height:56px;padding-inline:14px}
+.ws-library{border-right:1px solid var(--ws-border)}
+.ws-presentation{border-left:1px solid var(--ws-border)}
+.ws-status[data-output-state=live]{background:var(--ws-live-soft);color:var(--ws-live-text)}
+.ws-status[data-output-state=black]{background:var(--ws-warning-soft);color:var(--ws-warning)}
+.ws-status[data-output-state=frozen]{background:var(--ws-frozen-soft);color:var(--ws-frozen)}
+.ws-root .toasts{left:var(--ws-toast-left,380px);right:auto;bottom:var(--ws-toast-bottom,88px);width:var(--ws-toast-width,440px);max-width:min(440px,calc(100vw - 32px))}
+
+@media(max-width:1279px){
+  .ws-topbar{padding-inline:8px;gap:4px}
+}

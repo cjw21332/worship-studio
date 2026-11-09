@@ -12,7 +12,7 @@ body:
     attributes:
       label: App Version
       description: "Find in Help → About Worship Studio"
-      placeholder: "2.0.0"
+      placeholder: "3.1.0"
     validations:
       required: true
   - type: input
